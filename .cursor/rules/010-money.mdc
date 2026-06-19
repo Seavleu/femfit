@@ -1,0 +1,111 @@
+---
+description: Money handling — applies whenever code touches prices, payments, carts, or orders
+globs:
+  - "**/price*.ts"
+  - "**/price*.tsx"
+  - "**/payment*.ts"
+  - "**/order*.ts"
+  - "**/cart*.ts"
+  - "**/checkout/**"
+  - "**/lib/payments/**"
+  - "**/lib/orders/**"
+  - "**/lib/cart/**"
+---
+
+# Money Handling Rules
+
+Money is the easiest thing to get wrong and the most painful when you do.
+Follow these rules without exception.
+
+## Storage
+
+- Money is stored as **INTEGER in the smallest unit**:
+  - **USD** as cents (multiply dollars by 100; `$24.99` → `2499`)
+  - **KHR** as riels (no decimal subdivision; `៛10,000` → `10000`)
+- Column names always end in `_cents`:
+  - ✅ `subtotal_cents`, `total_cents`, `unit_price_cents`, `shipping_fee_cents`
+  - ❌ `subtotal`, `price`, `amount`
+- Money columns are `INTEGER` with `CHECK (column >= 0)`.
+
+## Arithmetic
+
+- **Never use JavaScript `Number` arithmetic on user-supplied money.**
+- **Never use floats** (`parseFloat`, `Number(...)`, `0.1 + 0.2`, etc.).
+- Use integer-only operations. Compute totals from integer cents:
+
+```typescript
+// CORRECT
+const subtotal_cents = items.reduce(
+  (sum, item) => sum + item.unit_price_cents * item.quantity,
+  0
+);
+
+// WRONG — never do this
+const subtotal = items.reduce(
+  (sum, item) => sum + parseFloat(item.price) * item.quantity,
+  0
+);
+```
+
+- For percent discounts, do integer math: `Math.floor(subtotal_cents * percent / 100)`.
+
+## API Transmission
+
+Money in API responses uses this exact shape:
+
+```typescript
+type Money = {
+  amount: number;        // integer in smallest unit
+  currency: 'USD' | 'KHR';
+  display: string;       // formatted for UI ("$24.99", "៛10,000")
+};
+```
+
+Currency is **required** on every monetary value. The `display` field is
+formatted server-side using the user's preferred currency; clients should use
+it directly without re-formatting.
+
+## Display Formatting
+
+Server-side formatting (use a single helper, e.g. `formatMoney(amount, currency)`):
+
+| Currency | Amount | Display |
+|---|---|---|
+| USD | 2499 | $24.99 |
+| USD | 100000 | $1,000.00 |
+| KHR | 10000 | ៛10,000 |
+| KHR | 1000000 | ៛1,000,000 |
+
+## Snapshots on Orders
+
+- `order_items` must store `unit_price_cents` at order creation time.
+- Future product price changes do NOT alter historical orders.
+- Same applies to `subtotal_cents` and `total_cents` on `orders`.
+
+## Validation
+
+In Zod schemas, money fields are positive integers:
+
+```typescript
+const moneySchema = z.number().int().min(0);
+
+const itemSchema = z.object({
+  variant_id: z.string().uuid(),
+  quantity: z.number().int().positive(),
+});
+```
+
+## Common Mistakes to Avoid
+
+- ❌ Storing prices as `numeric` or `decimal` in Postgres (still has precision issues, slower).
+- ❌ Storing prices as strings to "preserve precision".
+- ❌ Doing currency conversion at the database level.
+- ❌ Mixing USD and KHR in the same calculation.
+- ❌ Returning bare numbers in API responses ("price": 24.99) — always use the `Money` object.
+
+## Currency Conversion
+
+- USD is the base accounting currency.
+- KHR display uses a daily-locked exchange rate set by the admin.
+- The conversion rate at order creation is **snapshotted on the order row**.
+- Refunds use the same currency the customer paid in.

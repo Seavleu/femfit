@@ -1,0 +1,54 @@
+---
+description: FemFit base rules — always applied
+alwaysApply: true
+---
+
+You are a senior full-stack engineer working on **FemFit**, a Cambodian
+e-commerce store selling gymnastic apparel.
+
+## Stack (do not deviate)
+- Next.js 15 (App Router) + React 19 + TypeScript (strict)
+- Drizzle ORM + Supabase Postgres + Supabase Auth (phone OTP)
+- Tailwind CSS + shadcn/ui
+- Hosted on Vercel (Singapore), Cloudflare in front
+- Payments: ABA PayWay + Cash on Delivery
+
+## Before writing code
+- Read `/docs` for relevant specs:
+  - `docs/01-prd.md` for product behavior
+  - `docs/02-system-design.md` for architecture
+  - `docs/03-database-schema.md` for the data model
+  - `docs/04-api-spec.md` for the API contract
+  - `docs/05-runbook.md` for operational concerns
+- See `AGENTS.md` at the repo root for hard rules
+
+## Universal rules
+- **Money is integer cents/riels.** Never use floats for money. Columns end in `_cents`.
+- **All write endpoints accept Idempotency-Key.**
+- **Validate every API input with Zod.** No exceptions.
+- **All timestamps are `timestamptz` in UTC.**
+- **UUIDs as primary keys** (not auto-increment integers).
+- **TypeScript strict mode.** Avoid `any`; if used, comment why.
+- **React Server Components by default.** Add `"use client"` only when needed.
+
+## Cambodian context
+- Customers identify by phone number (E.164), not email.
+- Addresses use province → district → commune → village (no postal codes).
+- COD is supported and expected (40–60% of orders at launch).
+- English UI only (Khmer is v2).
+
+## Style
+- snake_case in DB and JSON; camelCase in TypeScript variables.
+- Drizzle queries; no raw SQL with string concatenation.
+- Return RFC 7807 problem+json on API errors.
+- Server-side render product pages; cache at the edge.
+
+## What NOT to do
+- Don't add microservices, Kubernetes, Redis (yet), Elasticsearch, GraphQL, or message brokers.
+- Don't introduce new payment gateways.
+- Don't add Khmer UI.
+- Don't store card data — use ABA's hosted checkout.
+- Don't commit secrets or `.env` files (`.env.example` only).
+
+If asked to do something that violates these rules, point out the conflict and
+propose an approach that respects them.

@@ -1,0 +1,205 @@
+---
+description: Database, Drizzle ORM, and migration conventions
+globs:
+  - "db/**/*.ts"
+  - "db/**/*.sql"
+  - "lib/**/*.ts"
+  - "**/*.sql"
+---
+
+# Database Rules
+
+**Read `docs/03-database-schema.md` before any schema change.** It is the
+authoritative reference for the data model.
+
+## Schema Source of Truth
+
+- Drizzle TypeScript schema is the source of truth: `db/schema.ts`
+- Migrations are generated SQL in `db/migrations/`
+- Never edit migrations after they've been applied to staging/prod
+
+## Standard Patterns
+
+### Primary keys
+All tables use UUID primary keys:
+
+```typescript
+id: uuid('id').primaryKey().defaultRandom()
+```
+
+### Timestamps
+Every table has `created_at`. Mutable tables also have `updated_at` with a trigger.
+
+```typescript
+created_at: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+updated_at: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+```
+
+**Never** use `timestamp` without timezone. Always `timestamptz` (in Drizzle:
+`withTimezone: true`).
+
+### Money columns
+
+```typescript
+total_cents: integer('total_cents').notNull(),
+// + check constraint:
+// CHECK (total_cents >= 0)
+```
+
+### Foreign Key Behavior — Be Explicit
+
+| Relationship | `ON DELETE` | Why |
+|---|---|---|
+| Cart items belong to cart | CASCADE | Owned data |
+| Order items reference variant | SET NULL | Snapshot survives variant deletion |
+| Payments reference order | RESTRICT | Preserve financial audit |
+| Categories self-referencing | SET NULL | Parent deletion shouldn't cascade |
+| Profile references auth.users | CASCADE | True ownership |
+
+### Soft Delete vs Hard Delete
+
+| Pattern | When to use |
+|---|---|
+| `deleted_at timestamptz` (soft) | Products, reviews, profiles — must survive in history |
+| Hard delete | Cart items, addresses, transient data |
+
+Append-only tables (`payment_events`, `inventory_movements`, `shipment_events`)
+are **never** UPDATEd or DELETEd. Insert new rows for new events.
+
+## Stock Decrement — Always Use SELECT FOR UPDATE
+
+Stock decrement happens inside a transaction with row-level locking:
+
+```typescript
+await db.transaction(async (tx) => {
+  // 1. Lock variant rows
+  const variants = await tx
+    .select()
+    .from(productVariants)
+    .where(inArray(productVariants.id, variantIds))
+    .for('update');  // <-- critical
+
+  // 2. Check stock
+  for (const item of items) {
+    const v = variants.find(x => x.id === item.variant_id);
+    if (!v || v.stock_quantity < item.quantity) {
+      throw new InsufficientStockError(item.variant_id);
+    }
+  }
+
+  // 3. Decrement stock + audit
+  for (const item of items) {
+    await tx.update(productVariants)
+      .set({ stock_quantity: sql`stock_quantity - ${item.quantity}` })
+      .where(eq(productVariants.id, item.variant_id));
+
+    await tx.insert(inventoryMovements).values({
+      variant_id: item.variant_id,
+      change_qty: -item.quantity,
+      reason: 'sale',
+      reference_type: 'order',
+      reference_id: orderId,
+    });
+  }
+
+  // 4. Create order in the same transaction
+  // ...
+});
+```
+
+**Never** decrement stock outside a transaction. **Never** skip the
+`inventory_movements` audit row.
+
+## Indexes
+
+- Every foreign key has a supporting index.
+- Use partial indexes for consistent filters: `WHERE is_active = true`
+- Composite indexes match query patterns: `(user_id, created_at desc)` for "user's recent orders"
+- GIN index on `tsvector` columns for full-text search.
+
+## Row-Level Security (RLS)
+
+Enable RLS on every user-owned table. Standard policy pattern:
+
+```sql
+alter table public.orders enable row level security;
+
+create policy orders_select_own on public.orders
+  for select using (auth.uid() = user_id);
+
+create policy orders_insert_own on public.orders
+  for insert with check (auth.uid() = user_id);
+
+create policy orders_admin_all on public.orders
+  for all using (
+    exists (select 1 from public.profiles
+            where id = auth.uid() and is_admin = true)
+  );
+```
+
+Service role (used by webhooks, reconciliation jobs) bypasses RLS. Confine
+service-role usage to specific backend code paths.
+
+## Drizzle Queries — Do's and Don'ts
+
+✅ Use Drizzle query builder:
+```typescript
+const orders = await db
+  .select()
+  .from(orders)
+  .where(eq(orders.user_id, userId))
+  .orderBy(desc(orders.created_at))
+  .limit(20);
+```
+
+✅ Use parameterized raw SQL when needed:
+```typescript
+await db.execute(sql`SELECT * FROM orders WHERE id = ${id}`);
+```
+
+❌ Never concatenate strings into SQL:
+```typescript
+// NEVER
+await db.execute(`SELECT * FROM orders WHERE id = '${id}'`);
+```
+
+## Migrations
+
+- Generated with `pnpm db:generate` from schema changes.
+- Reviewed manually before commit. Never trust auto-generation blindly.
+- Plain SQL files in `db/migrations/` with timestamp prefix.
+- Run automatically on deploy, BEFORE app code switches to new version.
+
+### Breaking Changes: Expand → Migrate → Contract
+
+Schema changes that would break the running app are split into three phases:
+
+1. **Expand:** Add new columns/tables alongside old. App writes to both. Deploy.
+2. **Migrate:** Backfill data. App reads new, writes both. Deploy and verify.
+3. **Contract:** App uses only new. Old columns/tables dropped in a later migration.
+
+**Do not** rename a column in a single migration. **Do not** make a nullable
+column NOT NULL without first ensuring all rows have values.
+
+## Snapshot Pattern
+
+Orders must remember the state of products at creation time:
+
+```typescript
+// When creating order_items:
+const orderItem = {
+  order_id: order.id,
+  variant_id: variant.id,
+  product_name: product.name,        // SNAPSHOT
+  variant_label: `${variant.size} / ${variant.color}`,  // SNAPSHOT
+  sku: variant.sku,                  // SNAPSHOT
+  unit_price_cents: variant.price_cents ?? product.base_price_cents,  // SNAPSHOT
+  quantity: item.quantity,
+  subtotal_cents: unit_price_cents * item.quantity,
+};
+```
+
+Future renames or repricings do not affect this order line.
+
+Same applies to shipping address on `orders` — copy province/district/etc into
+the order row at creation time.

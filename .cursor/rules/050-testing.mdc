@@ -1,0 +1,214 @@
+---
+description: Testing conventions and required coverage
+globs:
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.spec.ts"
+  - "**/e2e/**"
+  - "**/__tests__/**"
+---
+
+# Testing Rules
+
+## Tooling
+
+- **Unit + integration:** Vitest
+- **E2E:** Playwright (Chromium for desktop, Pixel 5 Android for mobile)
+- **Test data:** seed scripts in `db/seed.ts`
+- **Mocking:** prefer real Supabase test database over mocks when feasible
+
+## What MUST Have Tests
+
+### Money math (unit tests)
+
+Anything that computes totals, taxes, discounts, currency conversion, refunds.
+
+```typescript
+// Example: lib/orders/totals.test.ts
+import { describe, it, expect } from "vitest";
+import { computeOrderTotals } from "./totals";
+
+describe("computeOrderTotals", () => {
+  it("computes simple subtotal in USD cents", () => {
+    const result = computeOrderTotals({
+      items: [{ unit_price_cents: 2499, quantity: 2 }],
+      shipping_fee_cents: 200,
+      discount_cents: 0,
+      currency: "USD",
+    });
+    expect(result.subtotal_cents).toBe(4998);
+    expect(result.total_cents).toBe(5198);
+  });
+
+  it("applies percent discount correctly", () => {
+    const result = computeOrderTotals({
+      items: [{ unit_price_cents: 10000, quantity: 1 }],
+      shipping_fee_cents: 0,
+      discount: { type: "percent", value: 10 },  // 10% off
+      currency: "USD",
+    });
+    expect(result.discount_cents).toBe(1000);
+    expect(result.total_cents).toBe(9000);
+  });
+
+  it("never produces floating-point amounts", () => {
+    const result = computeOrderTotals({
+      items: [{ unit_price_cents: 333, quantity: 3 }],  // sums weird in floats
+      shipping_fee_cents: 0,
+      discount_cents: 0,
+      currency: "USD",
+    });
+    expect(Number.isInteger(result.subtotal_cents)).toBe(true);
+    expect(Number.isInteger(result.total_cents)).toBe(true);
+  });
+});
+```
+
+### Order state transitions
+
+Test that valid transitions succeed and invalid ones throw:
+
+```typescript
+describe("order state machine", () => {
+  it("allows pending_payment → confirmed", () => {
+    expect(() => transition("pending_payment", "confirmed")).not.toThrow();
+  });
+
+  it("rejects shipped → pending_payment", () => {
+    expect(() => transition("shipped", "pending_payment")).toThrow(InvalidTransitionError);
+  });
+
+  it("rejects delivered → cancelled (must go through return)", () => {
+    expect(() => transition("delivered", "cancelled")).toThrow(InvalidTransitionError);
+  });
+});
+```
+
+### Webhook signature verification
+
+Test good, bad, and replay cases:
+
+```typescript
+describe("ABA webhook signature", () => {
+  it("accepts valid signature", async () => {
+    const body = JSON.stringify({ txn_id: "x" });
+    const sig = createHmac("sha512", secret).update(body).digest("hex");
+    const res = await postWebhook(body, { signature: sig, timestamp: now() });
+    expect(res.status).toBe(200);
+  });
+
+  it("rejects invalid signature with 401", async () => {
+    const res = await postWebhook("{}", { signature: "wrong", timestamp: now() });
+    expect(res.status).toBe(401);
+  });
+
+  it("rejects expired timestamp (replay)", async () => {
+    const body = "{}";
+    const sig = createHmac("sha512", secret).update(body).digest("hex");
+    const oldTimestamp = Math.floor(Date.now() / 1000) - 600;  // 10 min old
+    const res = await postWebhook(body, { signature: sig, timestamp: oldTimestamp });
+    expect(res.status).toBe(401);
+  });
+
+  it("does not write to DB on signature failure", async () => {
+    const before = await countPaymentEvents();
+    await postWebhook("{}", { signature: "wrong", timestamp: now() });
+    const after = await countPaymentEvents();
+    expect(after).toBe(before);
+  });
+});
+```
+
+### Concurrent stock decrement
+
+Verify race conditions are handled:
+
+```typescript
+describe("concurrent stock decrement", () => {
+  it("one of two parallel orders succeeds; the other fails", async () => {
+    // Set up: variant with stock_quantity = 1
+    const variant = await createVariant({ stock_quantity: 1 });
+
+    // Two parallel order attempts
+    const results = await Promise.allSettled([
+      placeOrder({ items: [{ variant_id: variant.id, quantity: 1 }] }),
+      placeOrder({ items: [{ variant_id: variant.id, quantity: 1 }] }),
+    ]);
+
+    const fulfilled = results.filter(r => r.status === "fulfilled");
+    const rejected = results.filter(r => r.status === "rejected");
+
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect((rejected[0] as PromiseRejectedResult).reason)
+      .toBeInstanceOf(InsufficientStockError);
+
+    // Verify final stock is 0, not -1
+    const finalVariant = await getVariant(variant.id);
+    expect(finalVariant.stock_quantity).toBe(0);
+  });
+});
+```
+
+### Idempotency
+
+```typescript
+describe("order creation idempotency", () => {
+  it("returns the same order for duplicate Idempotency-Key", async () => {
+    const key = randomUUID();
+    const first = await createOrder({ ...payload, idempotency_key: key });
+    const second = await createOrder({ ...payload, idempotency_key: key });
+
+    expect(second.id).toBe(first.id);
+    // And ensure no second decrement of inventory:
+    const variant = await getVariant(payload.items[0].variant_id);
+    expect(variant.stock_quantity).toBe(initialStock - 1);  // not - 2
+  });
+});
+```
+
+## E2E Flows That MUST Pass
+
+Run on every PR via Playwright:
+
+1. **Phone OTP signup** — request code, verify, get tokens, fetch profile
+2. **Add to cart and checkout (COD)** — full flow, order created with status=confirmed
+3. **Add to cart and checkout (ABA sandbox)** — full flow with redirect, webhook, status=confirmed
+4. **Order status display** — list view + detail view
+5. **Review submission after delivered order** — POST review, admin approves, appears on product page
+
+## Mobile Performance Tests
+
+- Lighthouse CI on every PR for `/`, `/products/[slug]`, `/checkout`
+- Targets: Performance > 90, First Contentful Paint < 2s on Pixel 5 / 4G
+
+## Test Data
+
+- Seed script creates: 3 admin users, 50 customer users, 20 products with variants, 100 orders in various states
+- `pnpm db:seed` to reset and reseed staging
+
+## What NOT to Test
+
+- Don't test framework code (React rendering, Next.js routing).
+- Don't test trivial getters/setters.
+- Don't write E2E tests for everything — they're slow and brittle. Prefer unit + integration.
+
+## Coverage Targets
+
+- Unit + integration: 70% line coverage in `lib/`
+- E2E: cover the 5 critical flows above; don't aim for high coverage
+- Money math: 100% branch coverage (it's worth it)
+
+## CI Integration
+
+Tests run on every PR:
+
+```yaml
+# .github/workflows/test.yml
+- run: pnpm typecheck
+- run: pnpm lint
+- run: pnpm test --coverage
+- run: pnpm test:e2e
+```
+
+PR is blocked from merging if any of these fail.

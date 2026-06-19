@@ -1,0 +1,217 @@
+---
+description: API route conventions and patterns
+globs:
+  - "app/api/**/*.ts"
+  - "app/api/**/route.ts"
+---
+
+# API Route Rules
+
+**Read `docs/04-api-spec.md` before adding or modifying any endpoint.** It is
+the authoritative contract.
+
+## URL Structure
+
+- All endpoints under `/api/v1/`
+- Resources plural, lowercase: `/products`, `/orders`
+- IDs in path: `/products/{slug}`, `/orders/{id}`
+- Sub-resources nested: `/users/me/addresses`
+- Actions as POST sub-routes: `/orders/{id}/cancel`
+- Query params snake_case: `?min_price=`, `?cursor=`
+
+## Required for Every Route
+
+1. **Zod validation** of every input. No exceptions.
+2. **Proper HTTP method:**
+   - GET → safe, idempotent retrieval
+   - POST → create or trigger
+   - PATCH → partial update
+   - DELETE → remove
+3. **Proper status codes:**
+   - 200 OK with body
+   - 201 Created (on successful POST)
+   - 204 No Content (on DELETE or empty success)
+   - 4xx for client errors
+   - 5xx only for unhandled server errors
+4. **RFC 7807 error responses** with `application/problem+json` Content-Type.
+5. **Logs include `request_id`** for traceability.
+6. **Auth check** via Supabase `getUser()` before any side effect.
+7. **For admin routes:** check `profiles.is_admin = true` in middleware.
+
+## Route Skeleton
+
+```typescript
+import { z } from "zod";
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/shared/logger";
+import { problem } from "@/lib/shared/errors";
+
+const requestSchema = z.object({
+  variant_id: z.string().uuid(),
+  quantity: z.number().int().positive(),
+});
+
+export async function POST(req: NextRequest) {
+  const requestId = crypto.randomUUID();
+  const log = logger.child({ request_id: requestId, route: "/cart/items" });
+
+  // 1. Auth
+  const supabase = createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return problem(401, "unauthorized", "Authentication required", requestId);
+  }
+
+  // 2. Parse and validate
+  const body = await req.json().catch(() => null);
+  const parsed = requestSchema.safeParse(body);
+  if (!parsed.success) {
+    return problem(
+      400,
+      "validation_error",
+      "Invalid request body",
+      requestId,
+      parsed.error.issues.map(i => ({
+        field: i.path.join("."),
+        code: i.code,
+        message: i.message,
+      }))
+    );
+  }
+
+  // 3. Business logic
+  try {
+    const result = await addToCart(user.id, parsed.data);
+    log.info({ user_id: user.id }, "item added to cart");
+    return NextResponse.json(result, {
+      status: 201,
+      headers: { "X-Request-ID": requestId },
+    });
+  } catch (e) {
+    if (e instanceof InsufficientStockError) {
+      return problem(409, "insufficient_stock", e.message, requestId);
+    }
+    log.error({ err: e }, "unhandled error");
+    return problem(500, "internal_error", "An error occurred", requestId);
+  }
+}
+```
+
+## Idempotency
+
+Write endpoints accept `Idempotency-Key` header. Required for:
+- `POST /orders`
+- `POST /payments/{order_id}/initiate`
+- `POST /users/me/addresses`
+- `POST /products/{slug}/reviews`
+- `POST /admin/products`
+
+Pattern:
+
+```typescript
+const idempotencyKey = req.headers.get("idempotency-key");
+if (!idempotencyKey) {
+  return problem(400, "validation_error", "Idempotency-Key header required", requestId);
+}
+
+const existing = await getCachedIdempotentResponse(idempotencyKey);
+if (existing) {
+  return NextResponse.json(existing.response, { status: existing.status });
+}
+
+// ... process
+const result = await createOrder(...);
+
+await cacheIdempotentResponse(idempotencyKey, result, 201);
+return NextResponse.json(result, { status: 201 });
+```
+
+## Pagination
+
+Cursor-based, never offset:
+
+```typescript
+const cursorSchema = z.object({
+  cursor: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+```
+
+Response envelope:
+
+```typescript
+return NextResponse.json({
+  data: items,
+  pagination: {
+    next_cursor: hasMore ? encodeCursor(lastItem) : null,
+    has_more: hasMore,
+    limit,
+  },
+});
+```
+
+## Money in Responses
+
+Always return money as the `Money` object, never as a bare number:
+
+```typescript
+type Money = {
+  amount: number;
+  currency: "USD" | "KHR";
+  display: string;
+};
+
+// In responses:
+{
+  total: { amount: 4998, currency: "USD", display: "$49.98" }
+}
+```
+
+## Authentication Flow
+
+- Issued by Supabase Auth on phone OTP verification.
+- Access token (1h) in `Authorization: Bearer <token>` header.
+- Refresh token (30d) in httpOnly cookie.
+- On 401, client calls `/auth/refresh`.
+- Never store tokens in localStorage (XSS risk).
+
+## Error Helper
+
+Use a single `problem()` helper for RFC 7807 responses:
+
+```typescript
+function problem(
+  status: number,
+  code: string,
+  detail: string,
+  requestId: string,
+  errors?: Array<{ field: string; code: string; message: string }>
+) {
+  return NextResponse.json(
+    {
+      type: `https://femfit.com/errors/${code}`,
+      title: code.replace(/_/g, " "),
+      status,
+      detail,
+      request_id: requestId,
+      ...(errors ? { errors } : {}),
+    },
+    {
+      status,
+      headers: { "Content-Type": "application/problem+json" },
+    }
+  );
+}
+```
+
+## Rate Limiting
+
+Set up at Cloudflare WAF (per IP) and per-user for sensitive routes:
+
+- OTP request: 3/hour per phone
+- OTP verify: 5 attempts per code
+- Order creation: 10/hour per user
+- Global API: 100/min per IP
+
+Return 429 with `Retry-After` header on exceedance.

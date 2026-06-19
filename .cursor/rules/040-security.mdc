@@ -1,0 +1,221 @@
+---
+description: Security-critical code — webhooks, payments, auth
+globs:
+  - "app/api/**/webhooks/**"
+  - "app/api/**/auth/**"
+  - "lib/payments/**"
+  - "lib/users/**"
+---
+
+# Security Rules
+
+This code touches money and authentication. Apply extra care. Anything in this
+scope requires human code review before merge.
+
+## Webhook Handlers
+
+### Iron Rules
+
+1. **Verify HMAC signature BEFORE any database write.**
+2. **Read the RAW request body** for signature verification — not parsed JSON.
+3. **Use constant-time comparison** (`crypto.timingSafeEqual`).
+4. **Verify timestamp window** (reject if > 5 min old for replay protection).
+5. **Return 401 immediately** on signature failure. Do not log payload to DB.
+6. **Be idempotent** — duplicate webhooks must not double-process.
+
+### Canonical Webhook Handler
+
+```typescript
+import { createHmac, timingSafeEqual } from "crypto";
+import { NextRequest, NextResponse } from "next/server";
+
+export async function POST(req: NextRequest) {
+  // 1. Read RAW body BEFORE parsing
+  const body = await req.text();
+  const signature = req.headers.get("x-aba-signature");
+  const timestamp = req.headers.get("x-aba-timestamp");
+
+  // 2. Replay protection
+  if (!timestamp || Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) {
+    return new NextResponse("Stale or missing timestamp", { status: 401 });
+  }
+
+  // 3. Constant-time signature comparison
+  const secret = process.env.ABA_WEBHOOK_SECRET;
+  if (!secret) {
+    // Misconfiguration — fail closed
+    return new NextResponse("Misconfigured", { status: 500 });
+  }
+  const expected = createHmac("sha512", secret).update(body).digest("hex");
+
+  const sigBuf = Buffer.from(signature ?? "", "hex");
+  const expBuf = Buffer.from(expected, "hex");
+  if (
+    sigBuf.length !== expBuf.length ||
+    !timingSafeEqual(sigBuf, expBuf)
+  ) {
+    return new NextResponse("Invalid signature", { status: 401 });
+  }
+
+  // 4. ONLY NOW parse and process
+  let payload;
+  try {
+    payload = JSON.parse(body);
+  } catch {
+    return new NextResponse("Invalid JSON", { status: 400 });
+  }
+
+  // 5. Idempotent processing
+  await processWebhook(payload);  // dedupes by gateway_txn_id
+
+  return new NextResponse("OK", { status: 200 });
+}
+```
+
+### Webhook Idempotency
+
+```typescript
+async function processWebhook(payload: WebhookPayload) {
+  // Unique on (gateway, gateway_txn_id) prevents duplicate processing
+  const existingPayment = await findPaymentByTxnId("aba_payway", payload.txn_id);
+
+  if (existingPayment?.status === "succeeded") {
+    // Already processed — return success (idempotent)
+    return;
+  }
+
+  await db.transaction(async (tx) => {
+    // Insert audit event FIRST
+    await tx.insert(paymentEvents).values({
+      payment_id: existingPayment.id,
+      event_type: "webhook_received",
+      payload: payload,
+    });
+
+    // Update payment status
+    await tx.update(payments)
+      .set({ status: payload.status, paid_at: new Date() })
+      .where(eq(payments.id, existingPayment.id));
+
+    // Update order status if payment succeeded
+    if (payload.status === "succeeded") {
+      await tx.update(orders)
+        .set({ status: "confirmed" })
+        .where(eq(orders.id, existingPayment.order_id));
+    }
+  });
+
+  // Enqueue side effects AFTER the transaction commits
+  await enqueueOrderConfirmationSMS(existingPayment.order_id);
+}
+```
+
+## OTP / Authentication
+
+### Rate Limits (Enforce in Application Layer)
+
+- **OTP request:** 3 per hour per phone number
+- **OTP verify:** 5 attempts per code before lockout
+- **Code TTL:** 5 minutes
+- **Code length:** 6 digits
+
+### OTP Storage
+
+- Store the OTP code as a **hash** (e.g., bcrypt or SHA256+salt), never plaintext.
+- Use `pgcrypto` for hashing in the database.
+- Delete or expire the code after successful verification.
+
+### Session Management
+
+- **Access token:** 1 hour TTL
+- **Refresh token:** 30 days, sliding (extended on each use)
+- **Access token storage:** in memory only
+- **Refresh token storage:**
+  - Web: httpOnly secure cookie
+  - Mobile PWA: encrypted IndexedDB
+  - **Never localStorage** — XSS-vulnerable
+
+### Logout
+
+```typescript
+// Revoke the refresh token on logout
+await supabase.auth.signOut();
+// Also clear server-side session if you keep one
+```
+
+## Secrets
+
+- All secrets in environment variables, never in code.
+- `.env.local` for development, gitignored.
+- Vercel environment variables for production.
+- Document required variables in `.env.example`.
+- Rotate quarterly or immediately on suspected compromise.
+
+### Required environment variables
+
+```bash
+# Database
+DATABASE_URL=
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+# ABA PayWay
+ABA_MERCHANT_ID=
+ABA_API_KEY=
+ABA_WEBHOOK_SECRET=
+
+# SMS
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_FROM_NUMBER=
+
+# Email
+RESEND_API_KEY=
+
+# Monitoring
+SENTRY_DSN=
+```
+
+## Input Sanitization
+
+- React auto-escapes — trust it. **Never use `dangerouslySetInnerHTML`.**
+- If accepting HTML (e.g., review body with formatting), sanitize with a
+  library like `isomorphic-dompurify`.
+- Phone numbers: validate against E.164 with Cambodian prefix.
+- Email: validate with Zod's email validator, store lowercase.
+
+## SQL Injection
+
+- Drizzle ORM uses parameterized queries by default. Safe.
+- Raw SQL via Drizzle's `sql` template tag is safe: ``sql`SELECT * FROM x WHERE id = ${id}` ``
+- **Never** use string concatenation in SQL.
+
+## Logging Discipline
+
+- **Never log:** passwords, tokens, OTP codes, full credit card numbers, HMAC secrets.
+- **Always log:** `request_id`, `user_id` (after auth), endpoint, status code, duration.
+- Logs are structured JSON via Pino.
+
+## Authorization
+
+- All user-owned data access goes through RLS at the database layer.
+- Application-layer checks are a second line of defense, not the only one.
+- For admin operations, check `profiles.is_admin = true` in middleware.
+- Service-role operations (webhooks, cron) are confined to specific files.
+
+## CSRF
+
+- We use JWT in `Authorization` header (not cookie sessions) — CSRF largely
+  mitigated.
+- If cookie-based sessions are added later, require CSRF tokens on state-changing routes.
+
+## Threat Model Reminders
+
+- **Public webhook endpoints** must verify signatures. An attacker who finds
+  the URL must not be able to fake payments.
+- **Public catalog endpoints** must rate-limit to prevent scraping/DDoS.
+- **OTP request endpoint** is the easiest abuse target — guard it carefully
+  (per-phone rate limit, SMS cost monitoring).

@@ -1,0 +1,32 @@
+{
+  "//": "Cursor MCP server configuration for FemFit",
+  "//1": "After cloning, copy this to ~/.cursor/mcp.json (global) OR keep here as .cursor/mcp.json (project-scoped).",
+  "//2": "Replace placeholders with your actual tokens. Never commit real tokens.",
+  "//3": "Get Supabase token: https://supabase.com/dashboard/account/tokens",
+  "//4": "Get GitHub token: https://github.com/settings/tokens (scope: repo)",
+  "mcpServers": {
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--access-token",
+        "<YOUR_SUPABASE_PERSONAL_ACCESS_TOKEN>",
+        "--project-ref",
+        "<YOUR_PROJECT_REF>",
+        "--read-only"
+      ],
+      "//": "Remove --read-only when you want Cursor to apply migrations directly. Start read-only for safety."
+    },
+    "github": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "<YOUR_GITHUB_TOKEN>"
+      }
+    }
+  }
+}
