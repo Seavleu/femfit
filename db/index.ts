@@ -1,14 +1,17 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
-import dotenv from 'dotenv';
+import { config } from 'dotenv';
+import { resolve } from 'path';
 
-dotenv.config();
+config({ path: resolve(process.cwd(), '.env.local') });
+config({ path: resolve(process.cwd(), '.env') });
 
 const connectionString = process.env.DATABASE_URL
 if (!connectionString) {
-    throw new Error('DATABASE_URL is not set')
+  throw new Error(
+    'DATABASE_URL is not set. Make sure .env.local exists with DATABASE_URL=...'
+  )
 }
 
-// Disable prefetch as it is not supported for "Transaction" pool mode
 export const client = postgres(connectionString, { prepare: false })
 export const db = drizzle(client);
