@@ -11,6 +11,7 @@
     "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx db/seed.ts",
     "test": "vitest",
     "test:watch": "vitest --watch",
     "test:ci": "vitest run --coverage",
@@ -35,7 +36,8 @@
     "postgres": "^3.4.5",
     "prettier": "^3.3.3",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.0",
