@@ -14,7 +14,8 @@ import { eq, and, sql } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { withIdempotency, IdempotencyConflictError } from "@/lib/api/idempotency";
-import { PROBLEMS, type ProblemDetail } from "@/lib/api/errors";
+import { PROBLEMS, problem, type ProblemDetail } from "@/lib/api/errors";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 import {
   checkoutSchema,
   getShippingCents,
@@ -95,6 +96,20 @@ export async function createOrder(
   } = await supabase.auth.getUser();
   if (!user) {
     return { ok: false, error: PROBLEMS.unauthorized("Must be logged in to checkout.") };
+  }
+
+  // ── Rate limit: 10 orders/hr per user — Sys Design §9.1 ─────────────
+  const rl = await checkRateLimit("orders", user.id, RATE_LIMITS.ordersPerUser);
+  if (!rl.allowed) {
+    return {
+      ok: false,
+      error: problem(
+        429,
+        "rate-limited",
+        "Too many orders",
+        `Order limit reached. Try again after ${rl.resetAt.toLocaleTimeString()}.`
+      ),
+    };
   }
 
   // ── 3. Idempotency ──────────────────────────────────────────────────
