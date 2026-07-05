@@ -6,6 +6,7 @@ import {
   getFeaturedProducts,
   getNewArrivals,
   getActiveCategories,
+  getBestSellers,
 } from "@/lib/catalog/queries";
 
 export const revalidate = 60; // ISR — re-render at most once per minute
@@ -19,6 +20,9 @@ export default async function HomePage() {
       </Suspense>
       <Suspense fallback={<ProductGridSkeleton title="Featured" count={4} />}>
         <FeaturedProducts />
+      </Suspense>
+      <Suspense fallback={<ProductGridSkeleton title="Best Sellers" count={4} />}>
+        <BestSellers />
       </Suspense>
       <ValuesStrip />
       <Suspense fallback={<ProductGridSkeleton title="New Arrivals" count={4} />}>
@@ -199,6 +203,32 @@ async function FeaturedProducts() {
               product={product}
               priority={i < 2}
             />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────── Best Sellers ─────────────────────────── */
+
+async function BestSellers() {
+  const products = await getBestSellers(8);
+
+  if (products.length === 0) return null;
+
+  return (
+    <section className="bg-femfit-warm py-16 md:py-24">
+      <div className="container">
+        <SectionHeader
+          eyebrow="Top picks"
+          title="Best sellers"
+          href="/products?sort=bestsellers"
+          linkLabel="See all"
+        />
+        <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
+          {products.slice(0, 4).map((product) => (
+            <ProductCard key={product.id} product={product} priority={false} />
           ))}
         </div>
       </div>
