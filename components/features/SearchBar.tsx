@@ -34,7 +34,7 @@ export function SearchBarClient({
       <span
         className={`absolute ${
           size === "large" ? "left-5 top-1/2" : "left-3 top-1/2"
-        } -translate-y-1/2 text-femfit-mid`}
+        } -translate-y-1/2 text-muted-foreground`}
         aria-hidden="true"
       >
         <SearchIcon size={size === "large" ? 20 : 16} />
@@ -49,14 +49,14 @@ export function SearchBarClient({
             : "Search products…"
         }
         autoFocus={autoFocus}
-        className={`w-full rounded-md border border-femfit-border bg-femfit-warm ${inputClass} text-foreground placeholder:text-femfit-mid focus:border-femfit-charcoal focus:outline-none focus:ring-1 focus:ring-femfit-charcoal`}
+        className={`w-full rounded-xl border border-border bg-muted/40 ${inputClass} font-mono text-foreground placeholder:text-muted-foreground focus:border-foreground/40 focus:outline-none focus:ring-1 focus:ring-foreground/20`}
         aria-label="Search products"
       />
       {value && (
         <button
           type="button"
           onClick={() => setValue("")}
-          className={`absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-femfit-mid hover:bg-femfit-gray hover:text-foreground`}
+          className={`absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground`}
           aria-label="Clear search"
         >
           <CloseIcon />

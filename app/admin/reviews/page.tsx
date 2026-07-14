@@ -4,12 +4,6 @@ import { ReviewModerationCard } from "@/components/features/admin/ReviewModerati
 
 export const metadata: Metadata = { title: "Review Moderation" };
 
-/**
- * Review moderation queue — per PRD §3.5.
- * Shows pending reviews for admin to approve or reject.
- * "New reviews start in moderation queue" — enforced by RLS
- * insert policy (is_approved=false on INSERT).
- */
 export default async function AdminReviewsPage() {
   const admin = createServiceRoleClient();
 
@@ -34,19 +28,21 @@ export default async function AdminReviewsPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-xl font-semibold">Review Moderation</h1>
-
-      {/* Pending queue */}
       <div>
-        <h2 className="mb-4 text-sm font-medium text-gray-500">
+        <p className="label-mono mb-2">Moderation</p>
+        <h1 className="title-serif">Review Moderation</h1>
+      </div>
+
+      <div>
+        <h2 className="label-mono mb-4">
           Pending Review ({(pendingReviews ?? []).length})
         </h2>
         {(!pendingReviews || pendingReviews.length === 0) ? (
-          <div className="rounded-lg border border-gray-200 bg-white px-4 py-12 text-center text-sm text-gray-400">
+          <div className="module px-5 py-12 text-center text-sm text-muted-foreground">
             No reviews waiting for moderation
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {pendingReviews.map((review) => {
               const profile = review.profiles as { full_name: string | null; phone: string | null } | null;
               const product = review.products as { name: string; slug: string } | null;
@@ -69,28 +65,27 @@ export default async function AdminReviewsPage() {
         )}
       </div>
 
-      {/* Recently approved */}
       <div>
-        <h2 className="mb-4 text-sm font-medium text-gray-500">Recently Approved</h2>
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <h2 className="label-mono mb-4">Recently Approved</h2>
+        <div className="module overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                <th className="px-4 py-3">Product</th>
-                <th className="px-4 py-3">Rating</th>
-                <th className="px-4 py-3">Title</th>
-                <th className="px-4 py-3">Date</th>
+              <tr className="border-b border-border bg-muted/50 text-left">
+                <th className="label-mono px-4 py-3">Product</th>
+                <th className="label-mono px-4 py-3">Rating</th>
+                <th className="label-mono px-4 py-3">Title</th>
+                <th className="label-mono px-4 py-3">Date</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-border">
               {(recentApproved ?? []).map((r) => {
                 const product = r.products as { name: string } | null;
                 return (
-                  <tr key={r.id}>
+                  <tr key={r.id} className="hover:bg-muted/30">
                     <td className="px-4 py-3">{product?.name ?? "—"}</td>
-                    <td className="px-4 py-3">{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</td>
-                    <td className="px-4 py-3 text-gray-600">{r.title ?? "—"}</td>
-                    <td className="px-4 py-3 text-xs text-gray-500">
+                    <td className="px-4 py-3 text-rose">{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{r.title ?? "—"}</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">
                       {new Date(r.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                     </td>
                   </tr>

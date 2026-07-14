@@ -35,44 +35,61 @@ export default async function AdminLayout({
     { label: "Products", href: "/admin/products" },
     { label: "Reviews", href: "/admin/reviews" },
     { label: "Inventory", href: "/admin/inventory" },
-    { label: "Coupons", href: "/admin/coupons" },
   ];
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <aside className="sticky top-0 hidden h-screen w-56 flex-shrink-0 border-r border-gray-200 bg-white lg:block">
-        <div className="flex h-16 items-center border-b border-gray-200 px-5">
-          <Link href="/admin" className="text-lg font-semibold tracking-tight">FEMFIT</Link>
-          <span className="ml-2 rounded bg-femfit-charcoal px-1.5 py-0.5 text-2xs font-medium text-white">Admin</span>
-        </div>
-        <nav className="space-y-1 px-3 py-4">
-          {navItems.map((item) => (
-            <Link key={item.href} href={item.href}
-              className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900">
-              {item.label}
+    <div className="dot-grid flex min-h-screen">
+      <aside className="sticky top-0 hidden h-screen w-60 flex-shrink-0 p-4 lg:block">
+        <div className="module flex h-full flex-col">
+          <div className="border-b border-border px-5 py-5">
+            <Link href="/admin" className="brand-dot flex items-center gap-2">
+              <span className="inline-block h-2 w-2 rounded-full bg-foreground" aria-hidden="true" />
+              FEMFIT
             </Link>
-          ))}
-        </nav>
-        <div className="absolute bottom-0 w-full border-t border-gray-200 p-4">
-          <p className="truncate text-xs text-gray-500">{profile.full_name ?? user.email}</p>
-          <Link href="/" className="mt-1 block text-xs text-gray-400 hover:text-gray-600">← Back to store</Link>
+            <span className="label-mono mt-2 block normal-case tracking-[0.12em]">Admin</span>
+          </div>
+          <nav className="flex-1 space-y-1 px-3 py-4">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 font-mono text-2xs uppercase tracking-[0.1em] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+          <div className="border-t border-border p-4">
+            <p className="truncate text-xs text-muted-foreground">{profile.full_name ?? user.email}</p>
+            <Link href="/" className="label-mono mt-2 block normal-case tracking-[0.12em] hover:text-foreground">
+              ← Back to store
+            </Link>
+          </div>
         </div>
       </aside>
 
-      <div className="flex flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-gray-200 bg-white px-4 lg:hidden">
-          <Link href="/admin" className="text-base font-semibold">FEMFIT Admin</Link>
-          <Link href="/" className="text-xs text-gray-500">← Store</Link>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-30 px-3 py-3 lg:hidden">
+          <div className="module flex h-14 items-center justify-between px-4">
+            <Link href="/admin" className="brand-dot flex items-center gap-2 text-xs">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-foreground" aria-hidden="true" />
+              FEMFIT
+            </Link>
+            <Link href="/" className="label-mono normal-case tracking-[0.12em]">← Store</Link>
+          </div>
         </header>
-        <nav className="flex gap-1 overflow-x-auto border-b border-gray-200 bg-white px-4 py-2 lg:hidden">
+        <nav className="flex gap-2 overflow-x-auto px-3 pb-2 lg:hidden">
           {navItems.map((item) => (
-            <Link key={item.href} href={item.href}
-              className="flex-shrink-0 rounded-md px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100">
+            <Link
+              key={item.href}
+              href={item.href}
+              className="module-muted flex-shrink-0 rounded-xl px-3 py-2 font-mono text-2xs uppercase tracking-[0.1em] text-muted-foreground hover:text-foreground"
+            >
               {item.label}
             </Link>
           ))}
         </nav>
-        <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
+        <main className="flex-1 px-3 pb-8 pt-2 md:px-6 md:pb-10 md:pt-4">{children}</main>
       </div>
     </div>
   );

@@ -34,30 +34,40 @@ export function ReviewModerationCard({ review }: Props) {
   }
 
   return (
-    <div className={`rounded-lg border border-gray-200 bg-white p-4 ${isPending ? "opacity-50" : ""}`}>
+    <div className={`module p-5 ${isPending ? "opacity-50" : ""}`}>
       <div className="mb-2 flex items-center justify-between">
         <div>
           <p className="text-sm font-medium">{review.productName}</p>
-          <p className="text-xs text-gray-500">by {review.customerName} · {new Date(review.createdAt).toLocaleDateString()}</p>
+          <p className="label-mono mt-1 normal-case tracking-normal">
+            by {review.customerName} · {new Date(review.createdAt).toLocaleDateString()}
+          </p>
         </div>
-        <span className="text-sm">{"★".repeat(review.rating)}{"☆".repeat(5 - review.rating)}</span>
+        <span className="text-sm text-rose">{"★".repeat(review.rating)}{"☆".repeat(5 - review.rating)}</span>
       </div>
 
       {review.title && <p className="mb-1 text-sm font-medium">{review.title}</p>}
-      {review.body && <p className="mb-3 text-sm text-gray-600">{review.body}</p>}
+      {review.body && <p className="mb-3 text-sm text-muted-foreground">{review.body}</p>}
 
       <div className="flex gap-2">
-        <button type="button" onClick={() => handle("approve")} disabled={isPending}
-          className="rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50">
+        <button
+          type="button"
+          onClick={() => handle("approve")}
+          disabled={isPending}
+          className="rounded-xl bg-foreground px-3 py-1.5 font-mono text-2xs uppercase tracking-[0.1em] text-background hover:opacity-90 disabled:opacity-50"
+        >
           Approve
         </button>
-        <button type="button" onClick={() => handle("reject")} disabled={isPending}
-          className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50">
+        <button
+          type="button"
+          onClick={() => handle("reject")}
+          disabled={isPending}
+          className="rounded-xl border border-destructive/30 px-3 py-1.5 font-mono text-2xs uppercase tracking-[0.1em] text-destructive hover:bg-destructive/5 disabled:opacity-50"
+        >
           Reject
         </button>
       </div>
 
-      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
     </div>
   );
 }

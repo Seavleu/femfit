@@ -25,16 +25,18 @@ export function ProductCard({
   return (
     <Link
       href={`/products/${product.slug}`}
-      className={cn("group block", className)}
+      className={cn(
+        "group module flex flex-col overflow-hidden transition-transform duration-300 hover:-translate-y-0.5",
+        className
+      )}
     >
-      {/* Image container */}
-      <div className="relative aspect-[3/4] overflow-hidden rounded-lg bg-femfit-gray">
+      <div className="relative aspect-[3/4] overflow-hidden bg-muted">
         {product.primaryImageUrl ? (
           <Image
             src={product.primaryImageUrl}
             alt={product.primaryImageAlt ?? product.name}
             fill
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             priority={priority}
           />
@@ -42,49 +44,46 @@ export function ProductCard({
           <PlaceholderImage name={product.name} />
         )}
 
-        {/* Badges */}
         <div className="absolute left-3 top-3 flex flex-col gap-1.5">
           {product.isNew && (
-            <span className="rounded bg-femfit-charcoal px-2 py-0.5 text-2xs font-medium text-white">
+            <span className="rounded-md bg-foreground px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-background">
               New
             </span>
           )}
           {hasDiscount && (
-            <span className="rounded bg-rose-femfit px-2 py-0.5 text-2xs font-medium text-white">
+            <span className="rounded-md bg-rose-femfit px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white">
               Sale
             </span>
           )}
         </div>
 
-        {/* Out of stock overlay */}
         {!product.inStock && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-[1px]">
-            <span className="text-xs font-medium text-femfit-mid">
+          <div className="absolute inset-0 flex items-center justify-center bg-white/70 backdrop-blur-[1px]">
+            <span className="font-mono text-2xs uppercase tracking-[0.14em] text-muted-foreground">
               Out of stock
             </span>
           </div>
         )}
-
-        {/* "View product" hover overlay — Server Component safe */}
-        <div className="pointer-events-none absolute bottom-0 left-0 right-0 translate-y-full transition-transform duration-300 group-hover:translate-y-0">
-          <div className="bg-femfit-charcoal py-3 text-center text-xs font-medium tracking-wide text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-            View product
-          </div>
-        </div>
       </div>
 
-      {/* Product info */}
-      <div className="mt-3 space-y-1">
-        <p className="text-sm font-medium leading-snug text-foreground">
+      <div className="flex flex-1 flex-col gap-2 p-4">
+        <p className="font-serif text-lg leading-snug tracking-tight text-foreground">
           {product.name}
         </p>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-foreground">{price.display}</span>
-          {hasDiscount && (
-            <span className="text-sm text-femfit-mid line-through">
-              {compareAt!.display}
+        <div className="mt-auto flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs tracking-wide text-foreground">
+              {price.display}
             </span>
-          )}
+            {hasDiscount && (
+              <span className="font-mono text-xs text-muted-foreground line-through">
+                {compareAt!.display}
+              </span>
+            )}
+          </div>
+          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+            View →
+          </span>
         </div>
       </div>
     </Link>
@@ -100,8 +99,10 @@ function PlaceholderImage({ name }: { name: string }) {
     .toUpperCase();
 
   return (
-    <div className="flex h-full w-full items-center justify-center bg-femfit-gray">
-      <span className="text-2xl font-medium text-femfit-mid">{initials}</span>
+    <div className="flex h-full w-full items-center justify-center bg-muted">
+      <span className="font-mono text-2xl tracking-[0.2em] text-muted-foreground">
+        {initials}
+      </span>
     </div>
   );
 }

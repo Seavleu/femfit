@@ -28,7 +28,6 @@ export function VariantSelector({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  // Unique sizes and colors in this product
   const sizes = useMemo(
     () => Array.from(new Set(variants.map((v) => v.size).filter(Boolean))) as string[],
     [variants]
@@ -49,7 +48,6 @@ export function VariantSelector({
     { type: "success" | "error"; message: string } | null
   >(null);
 
-  // Find matching variant
   const selectedVariant = useMemo(() => {
     return variants.find(
       (v) =>
@@ -100,9 +98,7 @@ export function VariantSelector({
           type: "success",
           message: `Added to cart — ${productName}`,
         });
-        // Refresh server components so the cart badge in the nav updates
         router.refresh();
-        // Auto-dismiss after a few seconds
         setTimeout(() => setFeedback(null), 3000);
       } else {
         setFeedback({ type: "error", message: result.error.message });
@@ -120,13 +116,10 @@ export function VariantSelector({
 
   return (
     <div className="space-y-5">
-      {/* Color selector */}
       {colors.length > 0 && (
         <div>
           <div className="mb-2 flex items-baseline justify-between">
-            <span className="text-xs font-medium uppercase tracking-widest text-femfit-mid">
-              Color
-            </span>
+            <span className="label-mono">Color</span>
             {selectedColor && (
               <span className="text-sm">{selectedColor}</span>
             )}
@@ -144,8 +137,8 @@ export function VariantSelector({
                   aria-label={`Select color ${color}`}
                   className={`relative h-10 w-10 rounded-full border-2 transition-all ${
                     active
-                      ? "border-femfit-charcoal"
-                      : "border-femfit-border hover:border-femfit-mid"
+                      ? "border-foreground"
+                      : "border-border hover:border-muted-foreground"
                   } ${!available && "cursor-not-allowed opacity-40"}`}
                 >
                   <span
@@ -157,7 +150,7 @@ export function VariantSelector({
                       className="absolute inset-0 flex items-center justify-center"
                       aria-hidden="true"
                     >
-                      <span className="block h-[2px] w-8 rotate-45 bg-femfit-mid" />
+                      <span className="block h-[2px] w-8 rotate-45 bg-muted-foreground" />
                     </span>
                   )}
                 </button>
@@ -167,16 +160,13 @@ export function VariantSelector({
         </div>
       )}
 
-      {/* Size selector */}
       {sizes.length > 0 && (
         <div>
           <div className="mb-2 flex items-baseline justify-between">
-            <span className="text-xs font-medium uppercase tracking-widest text-femfit-mid">
-              Size
-            </span>
+            <span className="label-mono">Size</span>
             <Link
               href="/size-guide"
-              className="text-xs text-femfit-mid underline-offset-2 hover:underline"
+              className="font-mono text-2xs uppercase tracking-[0.1em] text-muted-foreground underline-offset-2 hover:underline"
             >
               Size guide
             </Link>
@@ -191,11 +181,11 @@ export function VariantSelector({
                   type="button"
                   onClick={() => setSelectedSize(size)}
                   disabled={!available}
-                  className={`flex h-11 min-w-[3rem] items-center justify-center rounded-md border px-3 text-sm font-medium transition-colors ${
+                  className={`flex h-11 min-w-[3rem] items-center justify-center rounded-xl border px-3 text-sm font-medium transition-colors ${
                     active
-                      ? "border-femfit-charcoal bg-femfit-charcoal text-white"
-                      : "border-femfit-border text-foreground hover:border-femfit-charcoal"
-                  } ${!available && "cursor-not-allowed text-femfit-mid line-through opacity-50 hover:border-femfit-border"}`}
+                      ? "border-foreground bg-foreground text-background"
+                      : "border-border text-foreground hover:border-foreground"
+                  } ${!available && "cursor-not-allowed text-muted-foreground line-through opacity-50 hover:border-border"}`}
                 >
                   {size}
                 </button>
@@ -205,17 +195,14 @@ export function VariantSelector({
         </div>
       )}
 
-      {/* Quantity */}
       <div>
-        <span className="mb-2 block text-xs font-medium uppercase tracking-widest text-femfit-mid">
-          Quantity
-        </span>
-        <div className="flex h-11 w-fit items-center rounded-md border border-femfit-border">
+        <span className="label-mono mb-2 block">Quantity</span>
+        <div className="flex h-11 w-fit items-center rounded-xl border border-border">
           <button
             type="button"
             onClick={() => setQuantity((q) => Math.max(1, q - 1))}
             disabled={quantity <= 1}
-            className="flex h-full w-11 items-center justify-center text-femfit-mid hover:text-foreground disabled:opacity-40"
+            className="flex h-full w-11 items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-40"
             aria-label="Decrease quantity"
           >
             <MinusIcon />
@@ -225,26 +212,25 @@ export function VariantSelector({
             type="button"
             onClick={() => setQuantity((q) => Math.min(maxQuantity || 10, q + 1))}
             disabled={maxQuantity > 0 && quantity >= maxQuantity}
-            className="flex h-full w-11 items-center justify-center text-femfit-mid hover:text-foreground disabled:opacity-40"
+            className="flex h-full w-11 items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-40"
             aria-label="Increase quantity"
           >
             <PlusIcon />
           </button>
         </div>
         {selectedVariant && selectedVariant.stockQuantity < 5 && selectedVariant.stockQuantity > 0 && (
-          <p className="mt-1.5 text-xs text-rose-femfit">
+          <p className="mt-1.5 text-xs text-rose">
             Only {selectedVariant.stockQuantity} left in stock
           </p>
         )}
       </div>
 
-      {/* Add to cart */}
       <div className="space-y-2 pt-2">
         <button
           type="button"
           onClick={handleAddToCart}
           disabled={!canAddToCart || isPending}
-          className="flex h-12 w-full items-center justify-center rounded-md bg-femfit-charcoal text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="btn-solid w-full disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isPending
             ? "Adding..."
@@ -257,10 +243,10 @@ export function VariantSelector({
 
         {feedback && (
           <div
-            className={`flex items-center justify-between gap-3 rounded-md px-4 py-2.5 text-sm ${
+            className={`flex items-center justify-between gap-3 rounded-xl px-4 py-2.5 text-sm ${
               feedback.type === "success"
-                ? "border border-femfit-border bg-femfit-warm"
-                : "border border-rose-femfit/30 bg-rose-femfit/10 text-rose-femfit"
+                ? "module-muted border border-border"
+                : "border border-rose/30 bg-rose-light text-rose"
             }`}
             role={feedback.type === "error" ? "alert" : "status"}
           >
@@ -268,7 +254,7 @@ export function VariantSelector({
             {feedback.type === "success" && (
               <Link
                 href="/cart"
-                className="flex-shrink-0 text-xs font-medium underline-offset-2 hover:underline"
+                className="flex-shrink-0 font-mono text-2xs uppercase tracking-[0.1em] underline-offset-2 hover:underline"
               >
                 View cart →
               </Link>

@@ -9,13 +9,13 @@ import {
   getBestSellers,
 } from "@/lib/catalog/queries";
 
-export const revalidate = 60; // ISR — re-render at most once per minute
+export const revalidate = 60;
 
 export default async function HomePage() {
   return (
-    <div className="min-h-screen">
-      <HeroSection />
-      <Suspense fallback={<CategoryStripSkeleton />}>
+    <div className="mx-auto max-w-6xl px-3 pb-8 pt-6 md:px-6 md:pt-8">
+      <BentoHero />
+      <Suspense fallback={<ModuleSkeleton className="mt-3 h-16" />}>
         <CategoryStrip />
       </Suspense>
       <Suspense fallback={<ProductGridSkeleton title="Featured" count={4} />}>
@@ -33,92 +33,98 @@ export default async function HomePage() {
   );
 }
 
-/* ─────────────────────────── Hero ─────────────────────────── */
+/* ─────────────────────────── Bento Hero ─────────────────────────── */
 
-function HeroSection() {
+function BentoHero() {
   return (
-    <section className="relative flex min-h-[85vh] items-end bg-femfit-gray md:min-h-[92vh]">
-      {/* Background — warm gradient stand-in until real photography is added */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "linear-gradient(160deg, #F2F0EC 0%, #EAE5DE 40%, #DDD4C8 100%)",
-        }}
-        aria-hidden="true"
-      />
-
-      {/* Decorative circle accent */}
-      <div
-        className="absolute right-[8%] top-[15%] h-64 w-64 rounded-full opacity-20 md:h-96 md:w-96"
-        style={{ background: "var(--ff-rose)" }}
-        aria-hidden="true"
-      />
-
-      {/* Content */}
-      <div className="container relative z-10 pb-16 md:pb-24">
-        <div className="max-w-2xl">
-          {/* Eyebrow */}
-          <p className="mb-4 text-xs font-medium uppercase tracking-[0.2em] text-femfit-mid">
-            New Season 2026
-          </p>
-
-          {/* Headline */}
-          <h1 className="mb-6 text-5xl font-medium leading-[1.05] tracking-tight-xl text-femfit-charcoal md:text-7xl">
-            Move with
-            <br />
-            <span className="text-rose-femfit italic">confidence.</span>
+    <section className="grid gap-3 md:grid-cols-12 md:grid-rows-[auto_auto]">
+      {/* Brand + CTA module — dominant left */}
+      <div className="module relative flex min-h-[420px] flex-col justify-between overflow-hidden p-6 md:col-span-7 md:min-h-[520px] md:p-10">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-80"
+          style={{
+            background:
+              "radial-gradient(ellipse at 80% 20%, rgba(232,62,140,0.18), transparent 50%), radial-gradient(ellipse at 10% 90%, rgba(245,230,66,0.2), transparent 45%)",
+          }}
+          aria-hidden="true"
+        />
+        <div className="relative">
+          <p className="label-mono mb-6">Season 2026</p>
+          <p className="brand-dot mb-4 text-base md:text-lg">FEMFIT</p>
+          <h1 className="max-w-md font-serif text-4xl leading-[1.05] tracking-tight text-foreground md:text-6xl">
+            Move with confidence.
           </h1>
-
-          {/* Sub */}
-          <p className="mb-8 max-w-md text-base leading-relaxed text-femfit-mid md:text-lg">
-            Premium gymnastic and activewear designed for Cambodia's active
-            women. Fast delivery across Phnom Penh.
+          <p className="mt-5 max-w-sm text-sm leading-relaxed text-muted-foreground md:text-base">
+            Gymnastic and activewear designed for Cambodia&apos;s athletes.
+            Fast delivery across Phnom Penh.
           </p>
-
-          {/* CTAs */}
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href="/products"
-              className="inline-flex h-12 items-center rounded-md bg-femfit-charcoal px-8 text-sm font-medium text-white transition-opacity hover:opacity-80"
-            >
-              Shop now
-            </Link>
-            <Link
-              href="/products?sort=newest"
-              className="inline-flex h-12 items-center rounded-md border border-femfit-charcoal px-8 text-sm font-medium text-femfit-charcoal transition-colors hover:bg-femfit-charcoal hover:text-white"
-            >
-              New arrivals
-            </Link>
-          </div>
-
-          {/* Social proof */}
-          <div className="mt-10 flex items-center gap-6">
-            <div className="flex -space-x-2">
-              {["#C4847A", "#A36B62", "#8A5550"].map((color, i) => (
-                <div
-                  key={i}
-                  className="h-8 w-8 rounded-full border-2 border-femfit-warm"
-                  style={{ background: color }}
-                  aria-hidden="true"
-                />
-              ))}
-            </div>
-            <p className="text-xs text-femfit-mid">
-              Trusted by <span className="font-medium text-foreground">500+</span>{" "}
-              women across Cambodia
-            </p>
-          </div>
+        </div>
+        <div className="relative flex flex-wrap gap-3 pt-8">
+          <Link href="/products" className="btn-solid">
+            Shop now
+          </Link>
+          <Link href="/products?sort=newest" className="btn-ghost">
+            New arrivals
+          </Link>
         </div>
       </div>
 
-      {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
-        <div className="flex h-10 w-6 items-start justify-center rounded-full border border-femfit-mid/30 pt-1.5">
-          <div className="h-1.5 w-1 animate-bounce rounded-full bg-femfit-mid" />
+      {/* Right column stack */}
+      <div className="grid gap-3 md:col-span-5 md:grid-rows-2">
+        {/* Specs / values teaser */}
+        <div className="module-muted flex flex-col justify-between p-5 md:p-6">
+          <div className="flex items-start justify-between">
+            <p className="font-serif text-2xl">Specs</p>
+            <span className="label-mono">Technical</span>
+          </div>
+          <ul className="mt-6 space-y-3 font-mono text-2xs uppercase tracking-[0.12em] text-foreground">
+            <li className="flex items-center gap-3">
+              <Dot /> Same-day PP dispatch
+            </li>
+            <li className="flex items-center gap-3">
+              <Dot /> Cash on delivery
+            </li>
+            <li className="flex items-center gap-3">
+              <Dot /> 7-day returns
+            </li>
+            <li className="flex items-center gap-3">
+              <Dot /> ABA · KHQR · COD
+            </li>
+          </ul>
+        </div>
+
+        {/* Campaign / visual module */}
+        <div className="module relative flex min-h-[200px] flex-col justify-end overflow-hidden p-5 md:p-6">
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(145deg, #121212 0%, #2a2a2a 45%, #E83E8C 100%)",
+            }}
+            aria-hidden="true"
+          />
+          <div className="relative">
+            <p className="label-mono text-white/50">Campaign</p>
+            <p className="mt-2 font-serif text-2xl text-white">Listen to your body.</p>
+            <Link
+              href="/products"
+              className="mt-4 inline-flex items-center gap-2 font-mono text-2xs uppercase tracking-[0.14em] text-white/80 transition-colors hover:text-white"
+            >
+              Explore collection →
+            </Link>
+          </div>
         </div>
       </div>
     </section>
+  );
+}
+
+function Dot() {
+  return (
+    <span
+      className="inline-block h-1.5 w-1.5 rounded-full bg-foreground"
+      aria-hidden="true"
+    />
   );
 }
 
@@ -126,7 +132,6 @@ function HeroSection() {
 
 async function CategoryStrip() {
   const cats = await getActiveCategories();
-
   const fallbackCategories = [
     { id: "1", slug: "leggings", name: "Leggings" },
     { id: "2", slug: "sports-bras", name: "Sports Bras" },
@@ -134,77 +139,49 @@ async function CategoryStrip() {
     { id: "4", slug: "shorts", name: "Shorts" },
     { id: "5", slug: "accessories", name: "Accessories" },
   ];
-
   const items = cats.length > 0 ? cats : fallbackCategories;
 
   return (
-    <section className="border-b border-femfit-border bg-femfit-warm py-6">
-      <div className="container">
-        <div className="flex items-center justify-center gap-2 overflow-x-auto pb-2 scrollbar-hide md:gap-3">
+    <section className="module mt-3 p-3">
+      <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+        <Link
+          href="/products"
+          className="flex-shrink-0 rounded-xl bg-foreground px-4 py-2.5 font-mono text-2xs uppercase tracking-[0.12em] text-background transition-opacity hover:opacity-85"
+        >
+          All
+        </Link>
+        {items.map((cat) => (
           <Link
-            href="/products"
-            className="flex-shrink-0 rounded-full border border-femfit-charcoal bg-femfit-charcoal px-5 py-2 text-xs font-medium text-white transition-colors hover:opacity-80"
+            key={cat.id}
+            href={`/products?category=${cat.slug}`}
+            className="flex-shrink-0 rounded-xl border border-border bg-muted/40 px-4 py-2.5 font-mono text-2xs uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
           >
-            All
+            {cat.name}
           </Link>
-          {items.map((cat) => (
-            <Link
-              key={cat.id}
-              href={`/products?category=${cat.slug}`}
-              className="flex-shrink-0 rounded-full border border-femfit-border px-5 py-2 text-xs font-medium text-femfit-mid transition-colors hover:border-femfit-charcoal hover:text-foreground"
-            >
-              {cat.name}
-            </Link>
-          ))}
-        </div>
+        ))}
       </div>
     </section>
   );
 }
 
-function CategoryStripSkeleton() {
-  return (
-    <section className="border-b border-femfit-border bg-femfit-warm py-6">
-      <div className="container">
-        <div className="flex items-center justify-center gap-3">
-          {[80, 96, 88, 72, 104].map((w, i) => (
-            <div
-              key={i}
-              className="h-8 animate-pulse rounded-full bg-femfit-gray"
-              style={{ width: w }}
-            />
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ─────────────────────────── Featured Products ─────────────────────────── */
+/* ─────────────────────────── Featured ─────────────────────────── */
 
 async function FeaturedProducts() {
   const products = await getFeaturedProducts(4);
-
   if (products.length === 0) return null;
 
   return (
-    <section className="bg-femfit-warm py-16 md:py-24">
-      <div className="container">
-        <SectionHeader
-          eyebrow="Curated picks"
-          title="Featured this season"
-          href="/products?featured=true"
-          linkLabel="View all"
-        />
-        <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-          {products.map((product, i) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              priority={i < 2}
-            />
-          ))}
-        </div>
+    <section className="mt-10 md:mt-14">
+      <SectionHeader
+        eyebrow="Curated"
+        title="Featured"
+        href="/products?featured=true"
+        linkLabel="View all"
+      />
+      <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+        {products.map((product, i) => (
+          <ProductCard key={product.id} product={product} priority={i < 2} />
+        ))}
       </div>
     </section>
   );
@@ -214,71 +191,62 @@ async function FeaturedProducts() {
 
 async function BestSellers() {
   const products = await getBestSellers(8);
-
   if (products.length === 0) return null;
 
   return (
-    <section className="bg-femfit-warm py-16 md:py-24">
-      <div className="container">
-        <SectionHeader
-          eyebrow="Top picks"
-          title="Best sellers"
-          href="/products?sort=bestsellers"
-          linkLabel="See all"
-        />
-        <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-          {products.slice(0, 4).map((product) => (
-            <ProductCard key={product.id} product={product} priority={false} />
-          ))}
-        </div>
+    <section className="mt-10 md:mt-14">
+      <SectionHeader
+        eyebrow="Top picks"
+        title="Best sellers"
+        href="/products?sort=bestsellers"
+        linkLabel="See all"
+      />
+      <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+        {products.slice(0, 4).map((product) => (
+          <ProductCard key={product.id} product={product} priority={false} />
+        ))}
       </div>
     </section>
   );
 }
 
-/* ─────────────────────────── Values Strip ─────────────────────────── */
+/* ─────────────────────────── Values ─────────────────────────── */
 
 function ValuesStrip() {
   const values = [
     {
-      icon: <TruckIcon />,
-      title: "Fast Delivery",
+      title: "Fast delivery",
       desc: "Same-day dispatch in Phnom Penh. 1–3 days nationwide.",
+      tag: "Logistics",
     },
     {
-      icon: <PhoneIcon />,
-      title: "COD Available",
+      title: "COD available",
       desc: "Pay cash on delivery — no upfront digital payment required.",
+      tag: "Payment",
     },
     {
-      icon: <ReturnIcon />,
-      title: "7-Day Returns",
+      title: "7-day returns",
       desc: "Not the right fit? Return within 7 days of delivery.",
+      tag: "Policy",
     },
     {
-      icon: <ShieldIcon />,
-      title: "Secure Payment",
+      title: "Secure pay",
       desc: "ABA Pay, KHQR, and cash on delivery accepted.",
+      tag: "Security",
     },
   ];
 
   return (
-    <section className="border-y border-femfit-border bg-femfit-gray py-12 md:py-16">
-      <div className="container">
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
-          {values.map((v) => (
-            <div key={v.title} className="flex flex-col items-start gap-3">
-              <span className="text-rose-femfit">{v.icon}</span>
-              <div>
-                <p className="text-sm font-medium">{v.title}</p>
-                <p className="mt-0.5 text-xs leading-relaxed text-femfit-mid">
-                  {v.desc}
-                </p>
-              </div>
-            </div>
-          ))}
+    <section className="mt-10 grid gap-3 md:mt-14 md:grid-cols-4">
+      {values.map((v) => (
+        <div key={v.title} className="module-muted p-5">
+          <p className="label-mono">{v.tag}</p>
+          <p className="mt-3 font-serif text-xl">{v.title}</p>
+          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+            {v.desc}
+          </p>
         </div>
-      </div>
+      ))}
     </section>
   );
 }
@@ -287,23 +255,20 @@ function ValuesStrip() {
 
 async function NewArrivals() {
   const products = await getNewArrivals(8);
-
   if (products.length === 0) return null;
 
   return (
-    <section className="bg-femfit-warm py-16 md:py-24">
-      <div className="container">
-        <SectionHeader
-          eyebrow="Just landed"
-          title="New arrivals"
-          href="/products?sort=newest"
-          linkLabel="See all"
-        />
-        <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-          {products.slice(0, 4).map((product) => (
-            <ProductCard key={product.id} product={product} priority={false} />
-          ))}
-        </div>
+    <section className="mt-10 md:mt-14">
+      <SectionHeader
+        eyebrow="Just landed"
+        title="New arrivals"
+        href="/products?sort=newest"
+        linkLabel="See all"
+      />
+      <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+        {products.slice(0, 4).map((product) => (
+          <ProductCard key={product.id} product={product} priority={false} />
+        ))}
       </div>
     </section>
   );
@@ -313,21 +278,23 @@ async function NewArrivals() {
 
 function NewsletterSection() {
   return (
-    <section className="bg-femfit-charcoal py-16 md:py-20">
-      <div className="container text-center">
-        <p className="mb-2 text-xs font-medium uppercase tracking-[0.2em] text-white/40">
-          Stay in the loop
-        </p>
-        <h2 className="mb-3 text-3xl font-medium tracking-tight-xl text-white md:text-4xl">
-          Early access &amp; exclusive offers
-        </h2>
-        <p className="mb-8 text-sm text-white/60">
-          Get first access to new drops and members-only discounts.
-        </p>
-        <NewsletterForm />
-        <p className="mt-3 text-xs text-white/30">
-          By subscribing you agree to receive SMS updates. Unsubscribe anytime.
-        </p>
+    <section className="module mt-10 overflow-hidden md:mt-14">
+      <div className="grid md:grid-cols-2">
+        <div className="border-b border-border p-6 md:border-b-0 md:border-r md:p-10">
+          <p className="label-mono">Stay in the loop</p>
+          <h2 className="mt-3 font-serif text-3xl tracking-tight md:text-4xl">
+            Early access &amp; exclusive offers
+          </h2>
+          <p className="mt-3 text-sm text-muted-foreground">
+            First drops and members-only discounts, by SMS.
+          </p>
+        </div>
+        <div className="flex flex-col justify-center bg-muted/30 p-6 md:p-10">
+          <NewsletterForm />
+          <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+            Unsubscribe anytime
+          </p>
+        </div>
       </div>
     </section>
   );
@@ -347,21 +314,16 @@ function SectionHeader({
   linkLabel: string;
 }) {
   return (
-    <div className="flex items-end justify-between">
+    <div className="flex items-end justify-between gap-4">
       <div>
-        <p className="mb-1 text-xs font-medium uppercase tracking-[0.15em] text-femfit-mid">
-          {eyebrow}
-        </p>
-        <h2 className="text-2xl font-medium tracking-tight-xl md:text-3xl">
-          {title}
-        </h2>
+        <p className="label-mono mb-2">{eyebrow}</p>
+        <h2 className="title-serif">{title}</h2>
       </div>
       <Link
         href={href}
-        className="flex items-center gap-1 text-xs font-medium text-femfit-mid underline-offset-2 hover:text-foreground hover:underline"
+        className="mb-1 font-mono text-2xs uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:text-foreground"
       >
-        {linkLabel}
-        <ChevronRightIcon />
+        {linkLabel} →
       </Link>
     </div>
   );
@@ -375,66 +337,23 @@ function ProductGridSkeleton({
   count: number;
 }) {
   return (
-    <section className="bg-femfit-warm py-16 md:py-24">
-      <div className="container">
-        <div className="flex items-end justify-between">
-          <div>
-            <div className="mb-1 h-3 w-24 animate-pulse rounded bg-femfit-gray" />
-            <div className="h-7 w-48 animate-pulse rounded bg-femfit-gray" />
-          </div>
-        </div>
-        <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-          {Array.from({ length: count }).map((_, i) => (
-            <div key={i} className="space-y-3">
-              <div className="aspect-[3/4] animate-pulse rounded-lg bg-femfit-gray" />
-              <div className="h-4 w-3/4 animate-pulse rounded bg-femfit-gray" />
-              <div className="h-3 w-1/2 animate-pulse rounded bg-femfit-gray" />
+    <section className="mt-10 md:mt-14" aria-label={`Loading ${title}`}>
+      <div className="mb-5 h-8 w-40 animate-pulse rounded-lg bg-muted" />
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {Array.from({ length: count }).map((_, i) => (
+          <div key={i} className="module overflow-hidden">
+            <div className="aspect-[3/4] animate-pulse bg-muted" />
+            <div className="space-y-2 p-4">
+              <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+              <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
     </section>
   );
 }
 
-/* ─────────────────────────── Icons ─────────────────────────── */
-
-function TruckIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M1 3h15v13H1z" /><path d="M16 8h4l3 3v5h-7V8z" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" />
-    </svg>
-  );
-}
-
-function PhoneIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6 6l.87-.87a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
-    </svg>
-  );
-}
-
-function ReturnIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" />
-    </svg>
-  );
-}
-
-function ShieldIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
-  );
-}
-
-function ChevronRightIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="m9 18 6-6-6-6" />
-    </svg>
-  );
+function ModuleSkeleton({ className }: { className?: string }) {
+  return <div className={`module animate-pulse bg-muted ${className ?? ""}`} />;
 }

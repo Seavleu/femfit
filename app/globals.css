@@ -4,58 +4,63 @@
 
 @layer base {
   :root {
-    /* FemFit — Clean & Modern palette */
-    --background: 40 20% 98%;          /* warm off-white #FAFAF8 */
-    --foreground: 0 0% 10%;            /* deep charcoal #1A1A1A */
-    --card: 40 20% 98%;
-    --card-foreground: 0 0% 10%;
-    --popover: 40 20% 98%;
-    --popover-foreground: 0 0% 10%;
-    --primary: 0 0% 10%;               /* charcoal buttons */
-    --primary-foreground: 40 20% 98%;
-    --secondary: 40 15% 95%;           /* light warm gray */
-    --secondary-foreground: 0 0% 10%;
-    --muted: 40 15% 94%;
-    --muted-foreground: 0 0% 45%;
-    --accent: 5 35% 63%;               /* soft rose #C4847A */
-    --accent-foreground: 0 0% 10%;
+    /* Nothing-inspired cool canvas — not warm cream */
+    --background: 0 0% 94%;            /* #F0F0F0 */
+    --foreground: 0 0% 7%;             /* #121212 */
+    --card: 0 0% 100%;                 /* white modules */
+    --card-foreground: 0 0% 7%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 7%;
+    --primary: 0 0% 7%;                /* solid black CTAs */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 96%;             /* #F5F5F5 */
+    --secondary-foreground: 0 0% 7%;
+    --muted: 0 0% 92%;
+    --muted-foreground: 0 0% 42%;
+    --accent: 340 78% 58%;             /* hot pink accent (photo pop) */
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 40 20% 98%;
-    --border: 40 10% 88%;
-    --input: 40 10% 88%;
-    --ring: 5 35% 63%;
-    --radius: 0.375rem;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 88%;
+    --input: 0 0% 88%;
+    --ring: 0 0% 7%;
+    --radius: 0.875rem;                /* ~14px module corners */
 
-    /* FemFit custom tokens */
-    --ff-rose: #C4847A;
-    --ff-rose-light: #F0E0DD;
-    --ff-charcoal: #1A1A1A;
-    --ff-warm-white: #FAFAF8;
-    --ff-warm-gray: #F2F0EC;
-    --ff-mid-gray: #8A8880;
-    --ff-border: #E4E0DB;
+    /* FemFit tokens mapped to Nothing language */
+    --ff-rose: #E83E8C;
+    --ff-rose-light: #FCE7F0;
+    --ff-charcoal: #121212;
+    --ff-warm-white: #FFFFFF;
+    --ff-warm-gray: #F0F0F0;
+    --ff-mid-gray: #6B6B6B;
+    --ff-border: #E0E0E0;
+    --ff-module: #FFFFFF;
+    --ff-module-muted: #F5F5F5;
+    --ff-yellow: #F5E642;
+    --ff-dot: rgba(0, 0, 0, 0.12);
   }
 
   .dark {
     --background: 0 0% 6%;
-    --foreground: 40 20% 96%;
-    --card: 0 0% 8%;
-    --card-foreground: 40 20% 96%;
-    --popover: 0 0% 8%;
-    --popover-foreground: 40 20% 96%;
-    --primary: 40 20% 96%;
+    --foreground: 0 0% 96%;
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 96%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 96%;
+    --primary: 0 0% 96%;
     --primary-foreground: 0 0% 6%;
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 40 20% 96%;
-    --muted: 0 0% 12%;
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 0 0% 96%;
+    --muted: 0 0% 14%;
     --muted-foreground: 0 0% 55%;
-    --accent: 5 35% 63%;
-    --accent-foreground: 40 20% 96%;
+    --accent: 340 78% 58%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 62% 30%;
-    --destructive-foreground: 40 20% 96%;
-    --border: 0 0% 16%;
-    --input: 0 0% 16%;
-    --ring: 5 35% 63%;
+    --destructive-foreground: 0 0% 96%;
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 0 0% 96%;
+    --ff-dot: rgba(255, 255, 255, 0.08);
   }
 }
 
@@ -69,6 +74,43 @@
   }
   h1, h2, h3, h4, h5, h6 {
     letter-spacing: -0.02em;
+  }
+}
+
+@layer components {
+  /* Dot-grid canvas — Nothing signature */
+  .dot-grid {
+    background-color: hsl(var(--background));
+    background-image: radial-gradient(var(--ff-dot) 1px, transparent 1px);
+    background-size: 18px 18px;
+  }
+
+  .module {
+    @apply rounded-2xl border border-border bg-card shadow-none;
+  }
+
+  .module-muted {
+    @apply rounded-2xl border border-transparent bg-[var(--ff-module-muted)];
+  }
+
+  .label-mono {
+    @apply font-mono text-2xs font-medium uppercase tracking-[0.14em] text-muted-foreground;
+  }
+
+  .title-serif {
+    @apply font-serif text-2xl font-normal tracking-tight md:text-3xl;
+  }
+
+  .brand-dot {
+    @apply font-mono text-sm font-semibold uppercase tracking-[0.22em];
+  }
+
+  .btn-solid {
+    @apply inline-flex h-12 items-center justify-center rounded-xl bg-primary px-6 font-mono text-xs font-medium uppercase tracking-[0.12em] text-primary-foreground transition-opacity hover:opacity-85;
+  }
+
+  .btn-ghost {
+    @apply inline-flex h-12 items-center justify-center rounded-xl border border-foreground/20 bg-transparent px-6 font-mono text-xs font-medium uppercase tracking-[0.12em] text-foreground transition-colors hover:bg-foreground hover:text-background;
   }
 }
 
@@ -90,5 +132,12 @@
   }
   .tracking-tight-xl {
     letter-spacing: -0.03em;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }

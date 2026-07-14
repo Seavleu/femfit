@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Geist, JetBrains_Mono, Instrument_Serif } from "next/font/google";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { ThemeProvider } from "next-themes";
 import { SearchBarClient } from "@/components/features/SearchBar";
+import { RegisterServiceWorker } from "@/components/features/RegisterServiceWorker";
 import { getCartItemCount } from "@/lib/cart/queries";
 import "./globals.css";
 
@@ -10,10 +12,21 @@ export const metadata: Metadata = {
   title: { default: "FemFit", template: "%s | FemFit" },
   description: "Premium gymnastic and activewear for Cambodia.",
   metadataBase: new URL(
-    process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000"
+    process.env.NEXT_PUBLIC_APP_URL ||
+      (process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000")
   ),
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "FemFit",
+    statusBarStyle: "default",
+  },
+  icons: {
+    icon: [{ url: "/icons/icon-192.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/icons/icon-192.svg" }],
+  },
 };
 
 const geist = Geist({
@@ -22,23 +35,44 @@ const geist = Geist({
   display: "swap",
 });
 
-export default function RootLayout({
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
+});
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-instrument-serif",
+  display: "swap",
+});
+
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = (await headers()).get("x-pathname") ?? "";
+  const isAdmin = pathname.startsWith("/admin");
+
   return (
-    <html lang="en" className={geist.variable} suppressHydrationWarning>
-      <body className="bg-background text-foreground">
+    <html
+      lang="en"
+      className={`${geist.variable} ${jetbrainsMono.variable} ${instrumentSerif.variable}`}
+      suppressHydrationWarning
+    >
+      <body className="dot-grid min-h-screen font-sans text-foreground">
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >
-          <SiteHeader />
-          {children}
-          <SiteFooter />
+          {!isAdmin && <SiteHeader />}
+          <main className="relative z-0">{children}</main>
+          {!isAdmin && <SiteFooter />}
+          <RegisterServiceWorker />
         </ThemeProvider>
       </body>
     </html>
@@ -50,12 +84,9 @@ async function SiteHeader() {
     { label: "Shop", href: "/products" },
     { label: "Leggings", href: "/products?category=leggings" },
     { label: "Sports Bras", href: "/products?category=sports-bras" },
-    { label: "New Arrivals", href: "/products?sort=newest" },
+    { label: "New", href: "/products?sort=newest" },
   ];
 
-  // Cart count for badge — runs on every nav render but is fast
-  // (single SUM query, cached at the cart row level). Wrap in try/catch
-  // so the header never breaks even if cart queries fail.
   let cartCount = 0;
   try {
     cartCount = await getCartItemCount();
@@ -64,66 +95,65 @@ async function SiteHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-femfit-border bg-femfit-warm/95 backdrop-blur-sm">
-      <div className="container flex h-16 items-center justify-between gap-4">
-        <Link
-          href="/"
-          className="text-xl font-medium tracking-tight text-femfit-charcoal dark:text-white"
-        >
-          FEMFIT
-        </Link>
+    <header className="sticky top-0 z-50 px-3 pt-3 md:px-6 md:pt-4">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 rounded-2xl border border-border bg-card/95 px-3 py-2.5 shadow-sm backdrop-blur-md md:px-4">
+        <div className="flex items-center gap-3">
+          <button
+            aria-label="Open menu"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-foreground transition-colors hover:bg-muted lg:hidden"
+          >
+            <MenuIcon />
+          </button>
+          <Link href="/" className="brand-dot text-foreground">
+            FEMFIT
+          </Link>
+        </div>
 
-        <nav className="hidden items-center gap-7 lg:flex">
+        <nav className="hidden items-center gap-1 lg:flex">
           {navLinks.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="text-sm text-femfit-mid transition-colors hover:text-foreground"
+              className="rounded-xl px-3 py-2 font-mono text-2xs uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               {item.label}
             </Link>
           ))}
         </nav>
 
-        <div className="hidden flex-1 max-w-sm md:block lg:max-w-md">
+        <div className="hidden flex-1 max-w-xs md:block lg:max-w-sm">
           <SearchBarClient size="small" />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <Link
             href="/search"
             aria-label="Search"
-            className="flex h-9 w-9 items-center justify-center rounded-md text-femfit-mid transition-colors hover:bg-femfit-gray hover:text-foreground md:hidden"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:hidden"
           >
             <SearchIcon />
           </Link>
           <Link
             href="/sign-in"
-            className="hidden text-sm text-femfit-mid transition-colors hover:text-foreground md:block"
+            className="hidden rounded-xl px-3 py-2 font-mono text-2xs uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:block"
           >
             Sign in
           </Link>
           <Link
             href="/cart"
             aria-label={`Cart${cartCount > 0 ? ` (${cartCount} items)` : ""}`}
-            className="relative flex h-9 w-9 items-center justify-center rounded-md text-femfit-mid transition-colors hover:bg-femfit-gray hover:text-foreground"
+            className="relative flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <BagIcon />
             {cartCount > 0 && (
               <span
-                className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-rose-femfit px-1 text-2xs font-medium text-white"
+                className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-foreground px-1 font-mono text-[10px] font-medium text-background"
                 aria-hidden="true"
               >
                 {cartCount > 99 ? "99+" : cartCount}
               </span>
             )}
           </Link>
-          <button
-            aria-label="Open menu"
-            className="flex h-9 w-9 items-center justify-center rounded-md text-femfit-mid hover:bg-femfit-gray lg:hidden"
-          >
-            <MenuIcon />
-          </button>
         </div>
       </div>
     </header>
@@ -137,29 +167,32 @@ function SiteFooter() {
     { label: "Sports Bras", href: "/products?category=sports-bras" },
     { label: "New Arrivals", href: "/products?sort=newest" },
   ];
-  const helpLinks = ["Track Order", "Returns", "Sizing Guide", "Contact Us"];
+  const helpLinks = [
+    { label: "Track Order", href: "/account/orders" },
+    { label: "Returns", href: "/returns" },
+    { label: "Sizing Guide", href: "/size-guide" },
+    { label: "Contact Us", href: "/help" },
+  ];
 
   return (
-    <footer className="border-t border-femfit-border bg-femfit-warm">
-      <div className="container py-16">
+    <footer className="relative z-0 mt-8 border-t border-border/60 px-3 pb-8 pt-10 md:px-6">
+      <div className="module mx-auto max-w-6xl p-6 md:p-10">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
           <div className="col-span-2 md:col-span-1">
-            <p className="text-xl font-medium tracking-tight">FEMFIT</p>
-            <p className="mt-3 text-sm leading-relaxed text-femfit-mid">
-              Premium activewear crafted for Cambodia&apos;s active women.
+            <p className="brand-dot">FEMFIT</p>
+            <p className="mt-4 font-serif text-lg leading-snug text-foreground/80">
+              Activewear engineered for Cambodia&apos;s athletes.
             </p>
           </div>
 
           <div>
-            <p className="mb-4 text-xs font-medium uppercase tracking-widest text-femfit-mid">
-              Shop
-            </p>
-            <ul className="space-y-3">
+            <p className="label-mono mb-4">Shop</p>
+            <ul className="space-y-2.5">
               {shopLinks.map((item) => (
                 <li key={item.label}>
                   <Link
                     href={item.href}
-                    className="text-sm text-femfit-mid hover:text-foreground"
+                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                   >
                     {item.label}
                   </Link>
@@ -169,17 +202,15 @@ function SiteFooter() {
           </div>
 
           <div>
-            <p className="mb-4 text-xs font-medium uppercase tracking-widest text-femfit-mid">
-              Help
-            </p>
-            <ul className="space-y-3">
+            <p className="label-mono mb-4">Help</p>
+            <ul className="space-y-2.5">
               {helpLinks.map((item) => (
-                <li key={item}>
+                <li key={item.label}>
                   <Link
-                    href="#"
-                    className="text-sm text-femfit-mid hover:text-foreground"
+                    href={item.href}
+                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                   >
-                    {item}
+                    {item.label}
                   </Link>
                 </li>
               ))}
@@ -187,23 +218,21 @@ function SiteFooter() {
           </div>
 
           <div>
-            <p className="mb-4 text-xs font-medium uppercase tracking-widest text-femfit-mid">
-              Contact
-            </p>
-            <ul className="space-y-3">
-              <li className="text-sm text-femfit-mid">Phnom Penh, Cambodia</li>
+            <p className="label-mono mb-4">Contact</p>
+            <ul className="space-y-2.5">
+              <li className="text-sm text-muted-foreground">Phnom Penh, Cambodia</li>
               <li>
-                <a href="https://t.me/femfit" className="text-sm text-femfit-mid hover:text-foreground">
+                <a href="https://t.me/femfit" className="text-sm text-muted-foreground hover:text-foreground">
                   Telegram
                 </a>
               </li>
               <li>
-                <a href="https://facebook.com/femfit" className="text-sm text-femfit-mid hover:text-foreground">
+                <a href="https://facebook.com/femfit" className="text-sm text-muted-foreground hover:text-foreground">
                   Facebook
                 </a>
               </li>
               <li>
-                <a href="https://instagram.com/femfit" className="text-sm text-femfit-mid hover:text-foreground">
+                <a href="https://instagram.com/femfit" className="text-sm text-muted-foreground hover:text-foreground">
                   Instagram
                 </a>
               </li>
@@ -211,9 +240,9 @@ function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-femfit-border pt-8 md:flex-row">
-          <p className="text-xs text-femfit-mid">
-            &copy; {new Date().getFullYear()} FemFit. All rights reserved.
+        <div className="mt-10 flex flex-col items-start justify-between gap-4 border-t border-border pt-6 md:flex-row md:items-center">
+          <p className="font-mono text-2xs uppercase tracking-[0.12em] text-muted-foreground">
+            &copy; {new Date().getFullYear()} FemFit
           </p>
           <div className="flex items-center gap-2">
             <PaymentBadge label="ABA Pay" />
@@ -228,7 +257,7 @@ function SiteFooter() {
 
 function PaymentBadge({ label }: { label: string }) {
   return (
-    <span className="rounded border border-femfit-border px-2 py-1 text-2xs font-medium text-femfit-mid">
+    <span className="rounded-lg border border-border bg-muted/50 px-2.5 py-1 font-mono text-2xs uppercase tracking-[0.1em] text-muted-foreground">
       {label}
     </span>
   );
@@ -255,10 +284,9 @@ function BagIcon() {
 
 function MenuIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <line x1="4" x2="20" y1="12" y2="12" />
-      <line x1="4" x2="20" y1="6" y2="6" />
-      <line x1="4" x2="20" y1="18" y2="18" />
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="4" x2="20" y1="8" y2="8" />
+      <line x1="4" x2="20" y1="16" y2="16" />
     </svg>
   );
 }

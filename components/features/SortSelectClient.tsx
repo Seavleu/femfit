@@ -29,7 +29,7 @@ export function SortSelectClient({
       id="sort"
       value={current ?? "newest"}
       onChange={handleChange}
-      className="h-9 rounded-md border border-femfit-border bg-transparent px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-femfit-charcoal"
+      className="h-9 rounded-xl border border-border bg-card px-3 font-mono text-2xs uppercase tracking-[0.1em] text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
     >
       {options.map((o) => (
         <option key={o.value} value={o.value}>

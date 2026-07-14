@@ -13,6 +13,8 @@ import {
 } from "@/db/schema";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { VariantSelector } from "@/components/features/VariantSelector";
+import { ReviewForm } from "@/components/features/ReviewForm";
+import { getReviewableOrdersForProduct } from "@/lib/reviews/actions";
 
 export const revalidate = 60;
 
@@ -169,75 +171,70 @@ export default async function ProductDetailPage({ params }: ProductDetailProps) 
     product.createdAt > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   return (
-    <div className="min-h-screen bg-femfit-warm">
-      {/* Breadcrumbs */}
-      <div className="border-b border-femfit-border py-4">
-        <div className="container">
-          <nav className="flex items-center gap-2 text-xs text-femfit-mid">
-            <Link href="/" className="hover:text-foreground">
-              Home
-            </Link>
-            <span>/</span>
-            <Link href="/products" className="hover:text-foreground">
-              Shop
-            </Link>
-            {product.categorySlug && (
-              <>
-                <span>/</span>
-                <Link
-                  href={`/products?category=${product.categorySlug}`}
-                  className="hover:text-foreground"
-                >
-                  {product.categoryName}
-                </Link>
-              </>
-            )}
-            <span>/</span>
-            <span className="truncate text-foreground">{product.name}</span>
-          </nav>
+    <div className="mx-auto max-w-6xl px-3 pb-10 pt-6 md:px-6 md:pt-8">
+      <div className="module mb-3 p-4 md:p-5">
+        <nav className="flex items-center gap-2 font-mono text-2xs uppercase tracking-[0.12em] text-muted-foreground">
+          <Link href="/" className="hover:text-foreground">
+            Home
+          </Link>
+          <span>/</span>
+          <Link href="/products" className="hover:text-foreground">
+            Shop
+          </Link>
+          {product.categorySlug && (
+            <>
+              <span>/</span>
+              <Link
+                href={`/products?category=${product.categorySlug}`}
+                className="hover:text-foreground"
+              >
+                {product.categoryName}
+              </Link>
+            </>
+          )}
+          <span>/</span>
+          <span className="truncate text-foreground">{product.name}</span>
+        </nav>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <ImageGallery images={galleryImages} productName={product.name} />
+
+        <div className="module p-6 lg:sticky lg:top-24 lg:self-start">
+          <ProductInfo
+            product={product}
+            variants={variants}
+            reviewSummary={reviewSummary}
+            inStock={inStock}
+            isNew={isNew}
+          />
         </div>
       </div>
 
-      <div className="container py-8 md:py-12">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-16">
-          {/* Image gallery */}
-          <ImageGallery images={galleryImages} productName={product.name} />
-
-          {/* Product info */}
-          <div className="lg:sticky lg:top-24 lg:self-start">
-            <ProductInfo
-              product={product}
-              variants={variants}
-              reviewSummary={reviewSummary}
-              inStock={inStock}
-              isNew={isNew}
-            />
-          </div>
+      <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="module p-6">
+          <p className="label-mono mb-3">Details</p>
+          <h2 className="mb-4 font-serif text-xl tracking-tight">
+            Product details
+          </h2>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {product.description ?? "No description available yet."}
+          </p>
         </div>
 
-        {/* Description section */}
-        <div className="mt-16 grid grid-cols-1 gap-12 border-t border-femfit-border pt-12 md:grid-cols-2 md:gap-20">
-          <div>
-            <h2 className="mb-4 text-lg font-medium tracking-tight">
-              Product details
-            </h2>
-            <p className="text-sm leading-relaxed text-femfit-mid">
-              {product.description ?? "No description available yet."}
-            </p>
-          </div>
-
-          <div>
-            <h2 className="mb-4 text-lg font-medium tracking-tight">
-              Care &amp; sizing
-            </h2>
-            <ul className="space-y-2 text-sm text-femfit-mid">
-              <li>• Machine wash cold with similar colors</li>
-              <li>• Tumble dry low or hang to dry</li>
-              <li>• Do not bleach or iron print</li>
-              <li>• Fits true to size — see size chart for measurements</li>
-            </ul>
-          </div>
+        <div className="module p-6">
+          <p className="label-mono mb-3">Care</p>
+          <h2 className="mb-4 font-serif text-xl tracking-tight">
+            Care &amp; sizing
+          </h2>
+          <ul className="space-y-2 text-sm text-muted-foreground">
+            <li>• Machine wash cold with similar colors</li>
+            <li>• Tumble dry low or hang to dry</li>
+            <li>• Do not bleach or iron print</li>
+            <li>• Fits true to size — see size chart for measurements</li>
+          </ul>
         </div>
+      </div>
 
         {/* Reviews placeholder */}
         <Suspense fallback={null}>
@@ -253,7 +250,6 @@ export default async function ProductDetailPage({ params }: ProductDetailProps) 
             />
           </Suspense>
         )}
-      </div>
     </div>
   );
 }
@@ -277,9 +273,9 @@ function ImageGallery({
 }) {
   if (images.length === 0) {
     return (
-      <div className="aspect-square rounded-lg bg-femfit-gray">
-        <div className="flex h-full items-center justify-center">
-          <span className="text-femfit-mid">No image available</span>
+      <div className="module aspect-square">
+        <div className="flex h-full items-center justify-center bg-muted">
+          <span className="label-mono">No image available</span>
         </div>
       </div>
     );
@@ -289,8 +285,7 @@ function ImageGallery({
 
   return (
     <div className="space-y-3">
-      {/* Primary image */}
-      <div className="relative aspect-[3/4] overflow-hidden rounded-lg bg-femfit-gray">
+      <div className="module relative aspect-[3/4] overflow-hidden p-0">
         <Image
           src={primary.url}
           alt={primary.altText ?? productName}
@@ -301,13 +296,12 @@ function ImageGallery({
         />
       </div>
 
-      {/* Thumbnails */}
       {rest.length > 0 && (
         <div className="grid grid-cols-4 gap-3">
           {rest.slice(0, 4).map((img) => (
             <div
               key={img.id}
-              className="relative aspect-square overflow-hidden rounded-md bg-femfit-gray"
+              className="module relative aspect-square overflow-hidden p-0"
             >
               <Image
                 src={img.url}
@@ -369,61 +363,54 @@ function ProductInfo({
 
   return (
     <div className="space-y-6">
-      {/* Category + badges */}
       <div className="flex items-center gap-3">
         {product.categoryName && (
-          <span className="text-xs font-medium uppercase tracking-widest text-femfit-mid">
-            {product.categoryName}
-          </span>
+          <span className="label-mono">{product.categoryName}</span>
         )}
         {isNew && (
-          <span className="rounded bg-femfit-charcoal px-2 py-0.5 text-2xs font-medium text-white">
+          <span className="rounded-xl bg-foreground px-2 py-0.5 font-mono text-2xs uppercase tracking-[0.1em] text-background">
             New
           </span>
         )}
         {hasDiscount && (
-          <span className="rounded bg-rose-femfit px-2 py-0.5 text-2xs font-medium text-white">
+          <span className="rounded-xl bg-rose px-2 py-0.5 font-mono text-2xs uppercase tracking-[0.1em] text-white">
             -{discountPercent}%
           </span>
         )}
       </div>
 
-      {/* Name */}
-      <h1 className="text-3xl font-medium tracking-tight md:text-4xl">
+      <h1 className="font-serif text-3xl tracking-tight md:text-4xl">
         {product.name}
       </h1>
 
-      {/* Reviews summary */}
       {reviewSummary.count > 0 ? (
         <div className="flex items-center gap-2">
           <StarRating rating={reviewSummary.avg} />
-          <span className="text-sm text-femfit-mid">
+          <span className="text-sm text-muted-foreground">
             {reviewSummary.avg.toFixed(1)} ({reviewSummary.count}{" "}
             {reviewSummary.count === 1 ? "review" : "reviews"})
           </span>
         </div>
       ) : (
-        <p className="text-sm text-femfit-mid">No reviews yet</p>
+        <p className="text-sm text-muted-foreground">No reviews yet</p>
       )}
 
-      {/* Price */}
       <div className="flex items-baseline gap-3">
-        <span className="text-2xl font-medium">{price.display}</span>
+        <span className="font-serif text-2xl">{price.display}</span>
         {hasDiscount && (
-          <span className="text-lg text-femfit-mid line-through">
+          <span className="text-lg text-muted-foreground line-through">
             {compareAt!.display}
           </span>
         )}
       </div>
 
-      {/* Stock status */}
       {!inStock ? (
-        <div className="flex items-center gap-2 text-sm text-rose-femfit">
-          <span className="h-2 w-2 rounded-full bg-rose-femfit" />
+        <div className="flex items-center gap-2 text-sm text-rose">
+          <span className="h-2 w-2 rounded-full bg-rose" />
           Out of stock — check back soon
         </div>
       ) : (
-        <div className="flex items-center gap-2 text-sm text-femfit-mid">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span className="h-2 w-2 rounded-full bg-green-600" />
           In stock — ready to ship
         </div>
@@ -438,29 +425,28 @@ function ProductInfo({
         currency={product.currency}
       />
 
-      {/* Shipping info */}
-      <div className="space-y-3 rounded-lg border border-femfit-border bg-femfit-warm p-4 text-sm">
+      <div className="module-muted space-y-3 p-4 text-sm">
         <div className="flex items-start gap-3">
           <TruckSmallIcon />
           <div>
             <p className="font-medium">Free shipping over $50</p>
-            <p className="text-femfit-mid">Same-day dispatch in Phnom Penh</p>
+            <p className="text-muted-foreground">Same-day dispatch in Phnom Penh</p>
           </div>
         </div>
-        <div className="flex items-start gap-3 border-t border-femfit-border pt-3">
+        <div className="flex items-start gap-3 border-t border-border pt-3">
           <ReturnSmallIcon />
           <div>
             <p className="font-medium">7-day returns</p>
-            <p className="text-femfit-mid">
+            <p className="text-muted-foreground">
               Hassle-free returns within 7 days of delivery
             </p>
           </div>
         </div>
-        <div className="flex items-start gap-3 border-t border-femfit-border pt-3">
+        <div className="flex items-start gap-3 border-t border-border pt-3">
           <ShieldSmallIcon />
           <div>
             <p className="font-medium">Secure payment</p>
-            <p className="text-femfit-mid">
+            <p className="text-muted-foreground">
               ABA Pay, KHQR, and cash on delivery accepted
             </p>
           </div>
@@ -479,71 +465,89 @@ async function ReviewsSection({
   productId: string;
   summary: { count: number; avg: number };
 }) {
-  if (summary.count === 0) return null;
+  const [recentReviews, reviewable] = await Promise.all([
+    summary.count > 0
+      ? db
+          .select({
+            id: reviews.id,
+            rating: reviews.rating,
+            title: reviews.title,
+            body: reviews.body,
+            createdAt: reviews.createdAt,
+          })
+          .from(reviews)
+          .where(
+            and(
+              eq(reviews.productId, productId),
+              eq(reviews.isApproved, true),
+              isNull(reviews.deletedAt)
+            )
+          )
+          .orderBy(sql`${reviews.createdAt} desc`)
+          .limit(20)
+      : Promise.resolve([]),
+    getReviewableOrdersForProduct(productId),
+  ]);
 
-  const recentReviews = await db
-    .select({
-      id: reviews.id,
-      rating: reviews.rating,
-      title: reviews.title,
-      body: reviews.body,
-      createdAt: reviews.createdAt,
-    })
-    .from(reviews)
-    .where(
-      and(
-        eq(reviews.productId, productId),
-        eq(reviews.isApproved, true),
-        isNull(reviews.deletedAt)
-      )
-    )
-    .orderBy(sql`${reviews.createdAt} desc`)
-    .limit(3);
+  if (summary.count === 0 && reviewable.length === 0) return null;
 
   return (
-    <section className="mt-16 border-t border-femfit-border pt-12">
+    <section className="module mt-3 p-6 md:p-8">
       <div className="mb-8 flex items-end justify-between">
         <div>
-          <h2 className="mb-2 text-2xl font-medium tracking-tight">
-            Customer reviews
-          </h2>
-          <div className="flex items-center gap-3">
-            <StarRating rating={summary.avg} />
-            <span className="text-sm text-femfit-mid">
-              {summary.avg.toFixed(1)} from {summary.count}{" "}
-              {summary.count === 1 ? "review" : "reviews"}
-            </span>
-          </div>
+          <p className="label-mono mb-2">Reviews</p>
+          <h2 className="title-serif mb-2">Customer reviews</h2>
+          {summary.count > 0 ? (
+            <div className="flex items-center gap-3">
+              <StarRating rating={summary.avg} />
+              <span className="text-sm text-muted-foreground">
+                {summary.avg.toFixed(1)} from {summary.count}{" "}
+                {summary.count === 1 ? "review" : "reviews"}
+              </span>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No published reviews yet</p>
+          )}
         </div>
       </div>
 
-      <div className="space-y-6">
-        {recentReviews.map((review) => (
-          <div
-            key={review.id}
-            className="border-b border-femfit-border pb-6 last:border-0"
-          >
-            <div className="mb-2 flex items-center justify-between">
-              <StarRating rating={review.rating} small />
-              <span className="text-xs text-femfit-mid">
-                {new Date(review.createdAt).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </span>
+      {recentReviews.length > 0 && (
+        <div className="space-y-6">
+          {recentReviews.map((review) => (
+            <div
+              key={review.id}
+              className="border-b border-border pb-6 last:border-0"
+            >
+              <div className="mb-2 flex items-center justify-between">
+                <StarRating rating={review.rating} small />
+                <span className="label-mono">
+                  {new Date(review.createdAt).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </span>
+              </div>
+              {review.title && (
+                <p className="mb-1 text-sm font-medium">{review.title}</p>
+              )}
+              {review.body && (
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {review.body}
+                </p>
+              )}
             </div>
-            {review.title && (
-              <p className="mb-1 text-sm font-medium">{review.title}</p>
-            )}
-            {review.body && (
-              <p className="text-sm leading-relaxed text-femfit-mid">
-                {review.body}
-              </p>
-            )}
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
+
+      <ReviewForm
+        productId={productId}
+        orders={reviewable.map((o) => ({
+          orderId: o.orderId,
+          orderNumber: o.orderNumber,
+        }))}
+      />
     </section>
   );
 }
@@ -587,16 +591,17 @@ async function RelatedProducts({
   if (related.length === 0) return null;
 
   return (
-    <section className="mt-16 border-t border-femfit-border pt-12">
-      <h2 className="mb-8 text-2xl font-medium tracking-tight">
-        You might also like
-      </h2>
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
+    <section className="mt-3">
+      <div className="module mb-3 p-5 md:p-6">
+        <p className="label-mono mb-2">Related</p>
+        <h2 className="title-serif">You might also like</h2>
+      </div>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         {related.map((p) => {
           const price = formatMoney(p.basePriceCents, p.currency);
           return (
             <Link key={p.id} href={`/products/${p.slug}`} className="group block">
-              <div className="relative aspect-[3/4] overflow-hidden rounded-lg bg-femfit-gray">
+              <div className="module relative aspect-[3/4] overflow-hidden p-0">
                 {p.primaryImageUrl ? (
                   <Image
                     src={p.primaryImageUrl}
@@ -606,7 +611,7 @@ async function RelatedProducts({
                     sizes="(max-width: 640px) 50vw, 25vw"
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-femfit-mid">
+                  <div className="flex h-full items-center justify-center bg-muted text-muted-foreground">
                     {p.name[0]}
                   </div>
                 )}
@@ -645,7 +650,7 @@ function StarRating({
           fill={n <= filled ? "currentColor" : "none"}
           stroke="currentColor"
           strokeWidth="1.5"
-          className={n <= filled ? "text-rose-femfit" : "text-femfit-border"}
+          className={n <= filled ? "text-rose" : "text-border"}
           aria-hidden="true"
         >
           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
@@ -674,7 +679,7 @@ function TruckSmallIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="flex-shrink-0 text-rose-femfit"
+      className="flex-shrink-0 text-rose"
       aria-hidden="true"
     >
       <path d="M1 3h15v13H1z" />
@@ -696,7 +701,7 @@ function ReturnSmallIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="flex-shrink-0 text-rose-femfit"
+      className="flex-shrink-0 text-rose"
       aria-hidden="true"
     >
       <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
@@ -716,7 +721,7 @@ function ShieldSmallIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="flex-shrink-0 text-rose-femfit"
+      className="flex-shrink-0 text-rose"
       aria-hidden="true"
     >
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />

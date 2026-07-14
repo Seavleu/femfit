@@ -4,11 +4,6 @@ import { InventoryAdjustForm } from "@/components/features/admin/InventoryAdjust
 
 export const metadata: Metadata = { title: "Inventory" };
 
-/**
- * Inventory management — per DB Schema §6.9 and Runbook §7.6.
- * Shows all variants with current stock, allows manual adjustments
- * that are logged to inventory_movements (append-only audit trail).
- */
 export default async function AdminInventoryPage() {
   const admin = createServiceRoleClient();
 
@@ -21,7 +16,6 @@ export default async function AdminInventoryPage() {
     .eq("is_active", true)
     .order("stock_quantity", { ascending: true });
 
-  // Recent movements for audit trail
   const { data: recentMovements } = await admin
     .from("inventory_movements")
     .select(`
@@ -33,33 +27,35 @@ export default async function AdminInventoryPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-xl font-semibold">Inventory</h1>
+      <div>
+        <p className="label-mono mb-2">Stock</p>
+        <h1 className="title-serif">Inventory</h1>
+      </div>
 
-      {/* Stock levels */}
-      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+      <div className="module overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-              <th className="px-4 py-3">Product</th>
-              <th className="px-4 py-3">SKU</th>
-              <th className="px-4 py-3">Variant</th>
-              <th className="px-4 py-3 text-right">Stock</th>
-              <th className="px-4 py-3 text-right">Adjust</th>
+            <tr className="border-b border-border bg-muted/50 text-left">
+              <th className="label-mono px-4 py-3">Product</th>
+              <th className="label-mono px-4 py-3">SKU</th>
+              <th className="label-mono px-4 py-3">Variant</th>
+              <th className="label-mono px-4 py-3 text-right">Stock</th>
+              <th className="label-mono px-4 py-3 text-right">Adjust</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-border">
             {(variants ?? []).map((v) => {
               const product = v.products as { id: string; name: string; slug: string };
               return (
-                <tr key={v.id} className="hover:bg-gray-50">
+                <tr key={v.id} className="hover:bg-muted/30">
                   <td className="px-4 py-3 font-medium">{product.name}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-gray-500">{v.sku}</td>
-                  <td className="px-4 py-3 text-gray-600">
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{v.sku}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
                     {[v.size, v.color].filter(Boolean).join(" / ") || "Default"}
                   </td>
                   <td className={`px-4 py-3 text-right tabular-nums font-medium ${
-                    v.stock_quantity === 0 ? "text-red-600" :
-                    v.stock_quantity <= 5 ? "text-amber-600" : ""
+                    v.stock_quantity === 0 ? "text-destructive" :
+                    v.stock_quantity <= 5 ? "text-rose" : ""
                   }`}>
                     {v.stock_quantity}
                   </td>
@@ -73,37 +69,36 @@ export default async function AdminInventoryPage() {
         </table>
       </div>
 
-      {/* Audit trail */}
       <div>
-        <h2 className="mb-4 text-sm font-medium text-gray-500">Recent Movements</h2>
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <h2 className="label-mono mb-4">Recent Movements</h2>
+        <div className="module overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                <th className="px-4 py-3">SKU</th>
-                <th className="px-4 py-3 text-right">Change</th>
-                <th className="px-4 py-3">Reason</th>
-                <th className="px-4 py-3">Note</th>
-                <th className="px-4 py-3">Date</th>
+              <tr className="border-b border-border bg-muted/50 text-left">
+                <th className="label-mono px-4 py-3">SKU</th>
+                <th className="label-mono px-4 py-3 text-right">Change</th>
+                <th className="label-mono px-4 py-3">Reason</th>
+                <th className="label-mono px-4 py-3">Note</th>
+                <th className="label-mono px-4 py-3">Date</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-border">
               {(recentMovements ?? []).map((m) => {
                 const variant = m.product_variants as { sku: string; products: { name: string } };
                 return (
-                  <tr key={m.id}>
+                  <tr key={m.id} className="hover:bg-muted/30">
                     <td className="px-4 py-3">
                       <p className="font-mono text-xs">{variant.sku}</p>
-                      <p className="text-xs text-gray-400">{variant.products.name}</p>
+                      <p className="text-xs text-muted-foreground">{variant.products.name}</p>
                     </td>
                     <td className={`px-4 py-3 text-right tabular-nums font-medium ${
-                      m.change_qty > 0 ? "text-green-600" : "text-red-600"
+                      m.change_qty > 0 ? "text-foreground" : "text-destructive"
                     }`}>
                       {m.change_qty > 0 ? "+" : ""}{m.change_qty}
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-600">{m.reason}</td>
-                    <td className="px-4 py-3 text-xs text-gray-500 max-w-xs truncate">{m.note ?? "—"}</td>
-                    <td className="px-4 py-3 text-xs text-gray-500">
+                    <td className="px-4 py-3 text-xs text-muted-foreground">{m.reason}</td>
+                    <td className="max-w-xs truncate px-4 py-3 text-xs text-muted-foreground">{m.note ?? "—"}</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">
                       {new Date(m.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                     </td>
                   </tr>

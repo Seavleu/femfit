@@ -53,33 +53,30 @@ export default async function ProductsPage({
   const params = await searchParams;
 
   return (
-    <div className="min-h-screen bg-femfit-warm">
-      <div className="border-b border-femfit-border bg-femfit-warm py-8">
-        <div className="container">
-          <nav className="mb-3 flex items-center gap-2 text-xs text-femfit-mid">
-            <Link href="/" className="hover:text-foreground">Home</Link>
-            <span>/</span>
-            <span className="text-foreground">Shop</span>
-          </nav>
-          <h1 className="text-2xl font-medium tracking-tight md:text-3xl">
-            {params.category ? formatCategoryName(params.category) : "All Products"}
-          </h1>
-        </div>
+    <div className="mx-auto max-w-6xl px-3 pb-10 pt-6 md:px-6 md:pt-8">
+      <div className="module mb-3 p-6 md:p-8">
+        <nav className="mb-3 flex items-center gap-2 font-mono text-2xs uppercase tracking-[0.12em] text-muted-foreground">
+          <Link href="/" className="hover:text-foreground">Home</Link>
+          <span>/</span>
+          <span className="text-foreground">Shop</span>
+        </nav>
+        <p className="label-mono mb-2">Catalog</p>
+        <h1 className="title-serif">
+          {params.category ? formatCategoryName(params.category) : "All products"}
+        </h1>
       </div>
 
-      <div className="container py-8">
-        <div className="flex flex-col gap-8 lg:flex-row">
-          <aside className="w-full lg:w-56 lg:flex-shrink-0">
-            <Suspense fallback={<FilterSkeleton />}>
-              <Filters activeParams={params} />
-            </Suspense>
-          </aside>
+      <div className="flex flex-col gap-3 lg:flex-row">
+        <aside className="module w-full p-5 lg:w-56 lg:flex-shrink-0">
+          <Suspense fallback={<FilterSkeleton />}>
+            <Filters activeParams={params} />
+          </Suspense>
+        </aside>
 
-          <div className="flex-1 min-w-0">
-            <Suspense fallback={<GridSkeleton />} key={JSON.stringify(params)}>
-              <ProductGrid params={params} />
-            </Suspense>
-          </div>
+        <div className="min-w-0 flex-1">
+          <Suspense fallback={<GridSkeleton />} key={JSON.stringify(params)}>
+            <ProductGrid params={params} />
+          </Suspense>
         </div>
       </div>
     </div>
@@ -134,19 +131,19 @@ async function Filters({ activeParams }: { activeParams: SearchParams }) {
   return (
     <div className="space-y-8">
       {hasActive && (
-        <Link href="/products" className="text-xs font-medium text-rose-femfit hover:underline">
+        <Link href="/products" className="font-mono text-2xs uppercase tracking-[0.12em] text-rose-femfit hover:underline">
           Clear all filters
         </Link>
       )}
 
       {/* Categories */}
       <div>
-        <p className="mb-3 text-xs font-medium uppercase tracking-widest text-femfit-mid">Category</p>
+        <p className="label-mono mb-3">Category</p>
         <ul className="space-y-2">
           <li>
             <Link
               href={filterUrl("category", null)}
-              className={`text-sm transition-colors ${!activeParams.category ? "font-medium text-foreground" : "text-femfit-mid hover:text-foreground"}`}
+              className={`text-sm transition-colors ${!activeParams.category ? "font-medium text-foreground" : "text-muted-foreground hover:text-foreground"}`}
             >
               All
             </Link>
@@ -155,7 +152,7 @@ async function Filters({ activeParams }: { activeParams: SearchParams }) {
             <li key={cat.id}>
               <Link
                 href={filterUrl("category", cat.slug)}
-                className={`text-sm transition-colors ${activeParams.category === cat.slug ? "font-medium text-foreground" : "text-femfit-mid hover:text-foreground"}`}
+                className={`text-sm transition-colors ${activeParams.category === cat.slug ? "font-medium text-foreground" : "text-muted-foreground hover:text-foreground"}`}
               >
                 {cat.name}
               </Link>
@@ -166,7 +163,7 @@ async function Filters({ activeParams }: { activeParams: SearchParams }) {
 
       {/* Price range — PRD §3.1 filter requirement */}
       <div>
-        <p className="mb-3 text-xs font-medium uppercase tracking-widest text-femfit-mid">Price</p>
+        <p className="label-mono mb-3">Price</p>
         <ul className="space-y-2">
           {priceRanges.map((range) => {
             const active =
@@ -178,7 +175,7 @@ async function Filters({ activeParams }: { activeParams: SearchParams }) {
                   href={filterUrl("min_price", active ? null : range.min, {
                     max_price: active ? null : range.max,
                   })}
-                  className={`text-sm transition-colors ${active ? "font-medium text-foreground" : "text-femfit-mid hover:text-foreground"}`}
+                  className={`text-sm transition-colors ${active ? "font-medium text-foreground" : "text-muted-foreground hover:text-foreground"}`}
                 >
                   {range.label}
                 </Link>
@@ -190,7 +187,7 @@ async function Filters({ activeParams }: { activeParams: SearchParams }) {
 
       {/* Size */}
       <div>
-        <p className="mb-3 text-xs font-medium uppercase tracking-widest text-femfit-mid">Size</p>
+        <p className="label-mono mb-3">Size</p>
         <div className="flex flex-wrap gap-2">
           {sizes.map((size) => {
             const active = activeParams.size === size;
@@ -198,10 +195,10 @@ async function Filters({ activeParams }: { activeParams: SearchParams }) {
               <Link
                 key={size}
                 href={filterUrl("size", active ? null : size)}
-                className={`flex h-8 w-10 items-center justify-center rounded border text-xs font-medium transition-colors ${
+                className={`flex h-8 w-10 items-center justify-center rounded-lg border font-mono text-2xs font-medium transition-colors ${
                   active
-                    ? "border-femfit-charcoal bg-femfit-charcoal text-white"
-                    : "border-femfit-border text-femfit-mid hover:border-femfit-charcoal hover:text-foreground"
+                    ? "border-foreground bg-foreground text-background"
+                    : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
                 }`}
               >
                 {size}
@@ -213,7 +210,7 @@ async function Filters({ activeParams }: { activeParams: SearchParams }) {
 
       {/* Color */}
       <div>
-        <p className="mb-3 text-xs font-medium uppercase tracking-widest text-femfit-mid">Color</p>
+        <p className="label-mono mb-3">Color</p>
         <div className="flex flex-wrap gap-2">
           {colors.map((color) => {
             const active = activeParams.color === color;
@@ -221,10 +218,10 @@ async function Filters({ activeParams }: { activeParams: SearchParams }) {
               <Link
                 key={color}
                 href={filterUrl("color", active ? null : color)}
-                className={`flex h-7 items-center gap-1.5 rounded-full border px-3 text-xs transition-colors ${
+                className={`flex h-7 items-center gap-1.5 rounded-xl border px-3 font-mono text-2xs transition-colors ${
                   active
-                    ? "border-femfit-charcoal bg-femfit-charcoal text-white"
-                    : "border-femfit-border text-femfit-mid hover:border-femfit-charcoal hover:text-foreground"
+                    ? "border-foreground bg-foreground text-background"
+                    : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
                 }`}
               >
                 <ColorSwatch color={color} />
@@ -240,11 +237,11 @@ async function Filters({ activeParams }: { activeParams: SearchParams }) {
         <Link
           href={filterUrl("in_stock", activeParams.in_stock === "true" ? null : "true")}
           className={`flex items-center gap-2 text-sm transition-colors ${
-            activeParams.in_stock === "true" ? "font-medium text-foreground" : "text-femfit-mid hover:text-foreground"
+            activeParams.in_stock === "true" ? "font-medium text-foreground" : "text-muted-foreground hover:text-foreground"
           }`}
         >
           <span className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border transition-colors ${
-            activeParams.in_stock === "true" ? "border-femfit-charcoal bg-femfit-charcoal" : "border-femfit-border"
+            activeParams.in_stock === "true" ? "border-foreground bg-foreground" : "border-border"
           }`}>
             {activeParams.in_stock === "true" && (
               <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -353,10 +350,10 @@ async function ProductGrid({ params }: { params: SearchParams }) {
   }
 
   return (
-    <div>
+    <div className="module p-4 md:p-5">
       {/* Toolbar */}
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <p className="text-sm text-femfit-mid">
+      <div className="mb-5 flex items-center justify-between gap-4">
+        <p className="font-mono text-2xs uppercase tracking-[0.12em] text-muted-foreground">
           Showing {visible.length} product{visible.length !== 1 ? "s" : ""}
           {hasMore && " (more available)"}
         </p>
@@ -372,7 +369,7 @@ async function ProductGrid({ params }: { params: SearchParams }) {
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         {visible.map((product, i) => {
           const price = formatMoney(product.basePriceCents, product.currency);
           const compareAt = product.compareAtPriceCents
@@ -383,14 +380,18 @@ async function ProductGrid({ params }: { params: SearchParams }) {
           const hasDiscount = compareAt && product.compareAtPriceCents! > product.basePriceCents;
 
           return (
-            <Link key={product.id} href={`/products/${product.slug}`} className="group block">
-              <div className="relative aspect-[3/4] overflow-hidden rounded-lg bg-femfit-gray">
+            <Link
+              key={product.id}
+              href={`/products/${product.slug}`}
+              className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-transform duration-300 hover:-translate-y-0.5"
+            >
+              <div className="relative aspect-[3/4] overflow-hidden bg-muted">
                 {product.primaryImageUrl ? (
                   <Image
                     src={product.primaryImageUrl}
                     alt={product.primaryImageAlt ?? product.name}
                     fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                     sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                     priority={i < 4}
                   />
@@ -400,26 +401,26 @@ async function ProductGrid({ params }: { params: SearchParams }) {
 
                 <div className="absolute left-3 top-3 flex flex-col gap-1.5">
                   {isNew && (
-                    <span className="rounded bg-femfit-charcoal px-2 py-0.5 text-2xs font-medium text-white">New</span>
+                    <span className="rounded-md bg-foreground px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-background">New</span>
                   )}
                   {hasDiscount && (
-                    <span className="rounded bg-rose-femfit px-2 py-0.5 text-2xs font-medium text-white">Sale</span>
+                    <span className="rounded-md bg-rose-femfit px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white">Sale</span>
                   )}
                 </div>
 
                 {!inStock && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-white/60">
-                    <span className="text-xs font-medium text-femfit-mid">Out of stock</span>
+                  <div className="absolute inset-0 flex items-center justify-center bg-white/70">
+                    <span className="font-mono text-2xs uppercase tracking-[0.14em] text-muted-foreground">Out of stock</span>
                   </div>
                 )}
               </div>
 
-              <div className="mt-3 space-y-1">
-                <p className="text-sm font-medium leading-snug">{product.name}</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm">{price.display}</span>
+              <div className="flex flex-1 flex-col gap-2 p-4">
+                <p className="font-serif text-lg leading-snug tracking-tight">{product.name}</p>
+                <div className="mt-auto flex items-center gap-2">
+                  <span className="font-mono text-xs tracking-wide">{price.display}</span>
                   {hasDiscount && (
-                    <span className="text-sm text-femfit-mid line-through">{compareAt!.display}</span>
+                    <span className="font-mono text-xs text-muted-foreground line-through">{compareAt!.display}</span>
                   )}
                 </div>
               </div>
@@ -430,11 +431,11 @@ async function ProductGrid({ params }: { params: SearchParams }) {
 
       {/* Pagination */}
       {(hasMore || offset > 0) && (
-        <div className="mt-12 flex items-center justify-center gap-3">
+        <div className="mt-10 flex items-center justify-center gap-3">
           {offset > 0 && (
             <Link
               href={paginationUrl(params, Math.max(0, offset - PAGE_SIZE))}
-              className="rounded-md border border-femfit-border px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-femfit-gray"
+              className="btn-ghost h-10 px-5"
             >
               ← Previous
             </Link>
@@ -442,7 +443,7 @@ async function ProductGrid({ params }: { params: SearchParams }) {
           {hasMore && (
             <Link
               href={paginationUrl(params, offset + PAGE_SIZE)}
-              className="rounded-md bg-femfit-charcoal px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
+              className="btn-solid h-10 px-5"
             >
               Next →
             </Link>
@@ -466,16 +467,16 @@ function paginationUrl(params: SearchParams, offset: number) {
 
 function EmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center py-24 text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-femfit-gray">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-femfit-mid" aria-hidden="true">
+    <div className="module flex flex-col items-center justify-center px-6 py-20 text-center">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground" aria-hidden="true">
           <circle cx="11" cy="11" r="8" />
           <path d="m21 21-4.35-4.35" />
         </svg>
       </div>
-      <p className="mb-1 font-medium">No products found</p>
-      <p className="mb-6 text-sm text-femfit-mid">Try adjusting your filters</p>
-      <Link href="/products" className="rounded-md border border-femfit-charcoal px-5 py-2.5 text-sm font-medium transition-colors hover:bg-femfit-charcoal hover:text-white">
+      <p className="font-serif text-2xl">No products found</p>
+      <p className="mb-6 mt-2 text-sm text-muted-foreground">Try adjusting your filters</p>
+      <Link href="/products" className="btn-ghost">
         Clear filters
       </Link>
     </div>
@@ -487,9 +488,9 @@ function FilterSkeleton() {
     <div className="space-y-8">
       {[120, 160, 140].map((w, i) => (
         <div key={i} className="space-y-3">
-          <div className="h-3 w-20 animate-pulse rounded bg-femfit-gray" />
+          <div className="h-3 w-20 animate-pulse rounded bg-muted" />
           {Array.from({ length: 4 }).map((_, j) => (
-            <div key={j} className="h-4 animate-pulse rounded bg-femfit-gray" style={{ width: `${60 + j * 10}%` }} />
+            <div key={j} className="h-4 animate-pulse rounded bg-muted" style={{ width: `${60 + j * 10}%` }} />
           ))}
         </div>
       ))}
@@ -499,17 +500,19 @@ function FilterSkeleton() {
 
 function GridSkeleton() {
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <div className="h-4 w-24 animate-pulse rounded bg-femfit-gray" />
-        <div className="h-8 w-36 animate-pulse rounded bg-femfit-gray" />
+    <div className="module p-5">
+      <div className="mb-5 flex items-center justify-between">
+        <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+        <div className="h-8 w-36 animate-pulse rounded bg-muted" />
       </div>
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="space-y-3">
-            <div className="aspect-[3/4] animate-pulse rounded-lg bg-femfit-gray" />
-            <div className="h-4 w-3/4 animate-pulse rounded bg-femfit-gray" />
-            <div className="h-3 w-1/3 animate-pulse rounded bg-femfit-gray" />
+          <div key={i} className="overflow-hidden rounded-2xl border border-border">
+            <div className="aspect-[3/4] animate-pulse bg-muted" />
+            <div className="space-y-2 p-4">
+              <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+              <div className="h-3 w-1/3 animate-pulse rounded bg-muted" />
+            </div>
           </div>
         ))}
       </div>
@@ -520,17 +523,17 @@ function GridSkeleton() {
 function PlaceholderImage({ name }: { name: string }) {
   const initials = name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
   return (
-    <div className="flex h-full w-full items-center justify-center bg-femfit-gray">
-      <span className="text-2xl font-medium text-femfit-mid">{initials}</span>
+    <div className="flex h-full w-full items-center justify-center bg-muted">
+      <span className="font-mono text-2xl tracking-[0.2em] text-muted-foreground">{initials}</span>
     </div>
   );
 }
 
 function ColorSwatch({ color }: { color: string }) {
   const colorMap: Record<string, string> = {
-    Black: "#1A1A1A",
-    White: "#F5F5F3",
-    "Rose Pink": "#C4847A",
+    Black: "#121212",
+    White: "#F5F5F5",
+    "Rose Pink": "#E83E8C",
     Navy: "#1B2A4A",
     Sage: "#7D8F7B",
   };

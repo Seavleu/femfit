@@ -34,33 +34,35 @@ export default async function AccountPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-femfit-warm">
-      <div className="border-b border-femfit-border">
-        <div className="container py-8 md:py-12">
-          <h1 className="text-2xl font-medium tracking-tight md:text-3xl">My Account</h1>
-          <p className="mt-2 text-sm text-femfit-mid">
-            {profile?.full_name ?? profile?.phone ?? user.phone ?? user.email}
-          </p>
-        </div>
+    <div className="mx-auto max-w-6xl px-3 pb-10 pt-6 md:px-6 md:pt-8">
+      <div className="mb-8">
+        <h1 className="title-serif">My Account</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {profile?.full_name ?? profile?.phone ?? user.phone ?? user.email}
+        </p>
       </div>
 
-      <div className="container py-8">
-        <div className="grid gap-4 sm:grid-cols-2 lg:max-w-2xl">
-          {sections.map((s) => (
-            <Link key={s.href} href={s.href}
-              className="rounded-lg border border-femfit-border bg-white p-6 transition-shadow hover:shadow-sm">
-              <p className="font-medium">{s.title}</p>
-              <p className="mt-1 text-sm text-femfit-mid">{s.desc}</p>
-            </Link>
-          ))}
-        </div>
-
-        <form action="/auth/sign-out" method="post" className="mt-8">
-          <button type="submit" className="text-sm text-femfit-mid underline-offset-2 hover:text-foreground hover:underline">
-            Sign out
-          </button>
-        </form>
+      <div className="grid gap-3 sm:grid-cols-2 lg:max-w-2xl">
+        {sections.map((s) => (
+          <Link
+            key={s.href}
+            href={s.href}
+            className="module p-6 transition-colors hover:bg-muted/30"
+          >
+            <p className="font-medium">{s.title}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{s.desc}</p>
+          </Link>
+        ))}
       </div>
+
+      <form action="/auth/sign-out" method="post" className="mt-8">
+        <button
+          type="submit"
+          className="font-mono text-2xs uppercase tracking-[0.12em] text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline"
+        >
+          Sign out
+        </button>
+      </form>
     </div>
   );
 }

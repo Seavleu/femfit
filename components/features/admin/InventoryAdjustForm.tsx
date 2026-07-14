@@ -44,8 +44,11 @@ export function InventoryAdjustForm({ variantId, sku, currentStock }: Props) {
 
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)}
-        className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100">
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="rounded-xl border border-border px-2 py-1 font-mono text-2xs uppercase tracking-[0.1em] text-muted-foreground hover:border-foreground hover:text-foreground"
+      >
         Adjust
       </button>
     );
@@ -53,17 +56,36 @@ export function InventoryAdjustForm({ variantId, sku, currentStock }: Props) {
 
   return (
     <div className="flex items-center gap-2">
-      <input type="number" value={qty} onChange={(e) => setQty(e.target.value)}
-        placeholder="+5 or -3" className="h-7 w-16 rounded border border-gray-300 px-2 text-xs outline-none" />
-      <input type="text" value={reason} onChange={(e) => setReason(e.target.value)}
-        placeholder="Reason..." className="h-7 w-32 rounded border border-gray-300 px-2 text-xs outline-none" />
-      <button type="button" onClick={submit} disabled={isPending}
-        className="h-7 rounded bg-gray-900 px-2 text-xs text-white hover:opacity-90 disabled:opacity-50">
+      <input
+        type="number"
+        value={qty}
+        onChange={(e) => setQty(e.target.value)}
+        placeholder="+5 or -3"
+        className="h-7 w-16 rounded-xl border border-border bg-card px-2 text-xs outline-none focus:border-foreground"
+      />
+      <input
+        type="text"
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        placeholder="Reason..."
+        className="h-7 w-32 rounded-xl border border-border bg-card px-2 text-xs outline-none focus:border-foreground"
+      />
+      <button
+        type="button"
+        onClick={submit}
+        disabled={isPending}
+        className="h-7 rounded-xl bg-foreground px-2 font-mono text-2xs uppercase tracking-[0.1em] text-background hover:opacity-90 disabled:opacity-50"
+      >
         {isPending ? "..." : "Save"}
       </button>
-      <button type="button" onClick={() => { setOpen(false); setError(null); }}
-        className="h-7 px-1 text-xs text-gray-400 hover:text-gray-600">✕</button>
-      {error && <span className="text-2xs text-red-600">{error}</span>}
+      <button
+        type="button"
+        onClick={() => { setOpen(false); setError(null); }}
+        className="h-7 px-1 text-xs text-muted-foreground hover:text-foreground"
+      >
+        ✕
+      </button>
+      {error && <span className="text-2xs text-destructive">{error}</span>}
     </div>
   );
 }
