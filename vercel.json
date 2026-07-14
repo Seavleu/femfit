@@ -1,9 +1,13 @@
 {
-    "$schema": "https://openapi.vercel.sh/vercel.json",
-    "crons": [
-      {
-        "path": "/api/v1/admin/jobs/reconcile",
-        "schedule": "*/5 * * * *"
-      }
-    ]
-  }
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/v1/admin/jobs/reconcile",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/v1/admin/jobs/release-reservations",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}

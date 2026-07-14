@@ -10,7 +10,7 @@
  *   "This is a critical background job. Verify it runs every 5 minutes."
  *
  * Triggered by:
- *   - Vercel Cron (vercel.json: { "crons": [{ "path": "/api/v1/admin/jobs/reconcile", "schedule": "*/5 * * * *" }] })
+ *   - Vercel Cron every 5 minutes (see vercel.json crons entry for this path)
  *   - Manual trigger from admin panel
  *
  * Security:
@@ -27,11 +27,23 @@ const CRON_SECRET = process.env.CRON_SECRET ?? "";
 const STALE_THRESHOLD_MINUTES = 10;
 
 export async function POST(request: NextRequest) {
+  return reconcile(request);
+}
+
+/** Vercel Cron invokes GET */
+export async function GET(request: NextRequest) {
+  return reconcile(request);
+}
+
+async function reconcile(request: NextRequest) {
   // ── Auth: Vercel Cron secret or admin JWT ────────────────────────
   const authHeader = request.headers.get("authorization") ?? "";
+  const cronOk =
+    (CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`) ||
+    (!CRON_SECRET && process.env.NODE_ENV !== "production");
 
-  if (CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`) {
-    // Vercel Cron — authorized
+  if (cronOk) {
+    // authorized
   } else {
     // Check for admin user
     const admin = createServiceRoleClient();
