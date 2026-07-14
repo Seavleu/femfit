@@ -5,6 +5,12 @@ import {
   productVariants,
   productImages,
 } from "@/db/schema";
+import { ensureAllDevAccounts } from "@/lib/dev/ensure";
+import { config } from "dotenv";
+import { resolve } from "path";
+
+config({ path: resolve(process.cwd(), ".env.local") });
+config({ path: resolve(process.cwd(), ".env") });
 
 const SIZES = ["XS", "S", "M", "L", "XL"];
 const COLORS = ["Black", "White", "Rose Pink", "Navy", "Sage"];
@@ -279,7 +285,15 @@ async function seed() {
   console.log(`  ${productCount} products`);
   console.log(`  ${variantCount} variants`);
   console.log(`  ${imageCount} images`);
+
+  // ── Dev accounts (dev1 customer, dev2 admin) ─────────────────────────────
+  console.log("\nEnsuring explicit dev accounts...");
+  await ensureAllDevAccounts();
+
   console.log(`\nRun pnpm dev and open http://localhost:3000`);
+  console.log(`Sign in with Dev buttons on /sign-in (local only):`);
+  console.log(`  dev1 (customer) → shop the store`);
+  console.log(`  dev2 (admin)    → /admin full access`);
 }
 
 seed().catch((err) => {
