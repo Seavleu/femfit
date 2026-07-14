@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { db } from "@/db";
+
 import {
   orders,
   orderItems,
@@ -19,10 +21,14 @@ import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 import {
   checkoutSchema,
   getShippingCents,
+  shippingAddressSchema,
   type CheckoutInput,
+  type ShippingAddress,
 } from "@/lib/orders/schema";
 import { getCurrentCartId } from "@/lib/cart/queries";
 import { formatMoney } from "@/lib/catalog/money";
+import { addresses } from "@/db/schema";
+import { sendOrderConfirmedEmail, sendOrderCancelledEmail } from "@/lib/notifications/email";
 
 /**
  * Order creation — the most critical server action in the application.
@@ -87,7 +93,8 @@ export async function createOrder(
       ),
     };
   }
-  const { paymentMethod, shippingAddress, idempotencyKey } = parsed.data;
+  const { paymentMethod, addressId, shippingAddress, customerNote, idempotencyKey } =
+    parsed.data;
 
   // ── 2. Authenticate ──────────────────────────────────────────────────
   const supabase = await createClient();
@@ -96,6 +103,54 @@ export async function createOrder(
   } = await supabase.auth.getUser();
   if (!user) {
     return { ok: false, error: PROBLEMS.unauthorized("Must be logged in to checkout.") };
+  }
+
+  // Resolve address_id → snapshot (API Spec §7.2)
+  let resolvedAddress: ShippingAddress;
+  if (addressId) {
+    const [row] = await db
+      .select()
+      .from(addresses)
+      .where(and(eq(addresses.id, addressId), eq(addresses.userId, user.id)))
+      .limit(1);
+    if (!row) {
+      return {
+        ok: false,
+        error: PROBLEMS.validation("Saved address not found."),
+      };
+    }
+    const street =
+      [row.streetDetail, row.village, row.landmark].filter(Boolean).join(", ") ||
+      row.district;
+    const mapped = {
+      fullName: row.recipientName,
+      phone: row.phone,
+      province: row.province as ShippingAddress["province"],
+      district: row.district,
+      commune: row.commune ?? undefined,
+      street,
+      notes: customerNote || undefined,
+    };
+    const addrParsed = shippingAddressSchema.safeParse(mapped);
+    if (!addrParsed.success) {
+      return {
+        ok: false,
+        error: PROBLEMS.validation(
+          addrParsed.error.issues[0]?.message ?? "Saved address is incomplete"
+        ),
+      };
+    }
+    resolvedAddress = addrParsed.data;
+  } else if (shippingAddress) {
+    resolvedAddress = {
+      ...shippingAddress,
+      notes: customerNote || shippingAddress.notes,
+    };
+  } else {
+    return {
+      ok: false,
+      error: PROBLEMS.validation("Provide a saved address or shipping address."),
+    };
   }
 
   // ── Rate limit: 10 orders/hr per user — Sys Design §9.1 ─────────────
@@ -122,18 +177,26 @@ export async function createOrder(
         const confirmation = await executeOrderCreation(
           user.id,
           paymentMethod,
-          shippingAddress
+          resolvedAddress
         );
         return { data: confirmation, status: 201 };
       }
     );
 
     if (result.replayed) {
-      // Return the cached response from the original request
       return { ok: true, data: result.data };
     }
 
+    // Fire-and-forget confirmation email (SMS deferred)
+    void sendOrderConfirmedEmail({
+      userId: user.id,
+      orderId: result.data.orderId,
+      orderNumber: result.data.orderNumber,
+      totalDisplay: result.data.totalDisplay,
+    });
+
     revalidatePath("/cart");
+    revalidatePath("/account/orders");
     revalidatePath("/", "layout");
     return { ok: true, data: result.data };
   } catch (err) {
@@ -153,7 +216,7 @@ export async function createOrder(
 async function executeOrderCreation(
   userId: string,
   paymentMethod: string,
-  address: CheckoutInput["shippingAddress"]
+  address: ShippingAddress
 ): Promise<OrderConfirmation> {
   // Load the user's cart
   const cartId = await getCurrentCartId();
@@ -240,30 +303,35 @@ async function executeOrderCreation(
     }
 
     // b. Create the order with denormalized shipping address
+    // Map API payment_method → DB enum (aba_payway → aba_pay until ABA ships)
+    const dbPaymentMethod: "cod" | "aba_pay" | "khqr" | "card" =
+      paymentMethod === "aba_payway" ? "aba_pay" : "cod";
+
     const [order] = await tx
       .insert(orders)
       .values({
         userId,
         orderNumber,
         status: initialStatus,
-        paymentMethod,
+        paymentMethod: dbPaymentMethod,
         subtotalCents,
-        shippingCents,
+        shippingFeeCents: shippingCents,
         totalCents,
         currency,
-        shippingFullName: address.fullName,
+        shippingRecipient: address.fullName,
         shippingPhone: address.phone,
         shippingProvince: address.province,
         shippingDistrict: address.district,
         shippingCommune: address.commune ?? null,
         shippingStreet: address.street,
-        shippingNotes: address.notes ?? null,
+        customerNote: address.notes ?? null,
       })
       .returning({ id: orders.id, orderNumber: orders.orderNumber });
 
     // c. Snapshot product data into order_items — DB Schema §6.7
     for (const row of cartRows) {
       const unitPriceCents = row.variantPriceCents ?? row.basePriceCents;
+      const lineSubtotal = unitPriceCents * row.quantity;
 
       await tx.insert(orderItems).values({
         orderId: order.id,
@@ -272,6 +340,7 @@ async function executeOrderCreation(
         sku: row.sku,
         unitPriceCents,
         quantity: row.quantity,
+        subtotalCents: lineSubtotal,
       });
     }
 
@@ -335,5 +404,89 @@ class OrderError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "OrderError";
+  }
+}
+
+/**
+ * Customer-initiated cancel — PRD §8.3 / state machine.
+ * Allowed only from pending_payment or confirmed (before packing).
+ * Returns stock and marks order cancelled.
+ */
+export async function cancelOrder(orderId: string): Promise<
+  | { ok: true }
+  | { ok: false; error: string }
+> {
+  const idParsed = z.string().uuid().safeParse(orderId);
+  if (!idParsed.success) return { ok: false, error: "Invalid order id." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Must be signed in." };
+
+  const admin = createServiceRoleClient();
+  const { data: order } = await admin
+    .from("orders")
+    .select("id, status, order_number, user_id")
+    .eq("id", orderId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!order) return { ok: false, error: "Order not found." };
+
+  const cancellable = ["pending_payment", "confirmed"];
+  if (!cancellable.includes(order.status)) {
+    return {
+      ok: false,
+      error: `Cannot cancel an order that is "${order.status.replace(/_/g, " ")}". Contact support if you need help.`,
+    };
+  }
+
+  try {
+    const { data: items } = await admin
+      .from("order_items")
+      .select("variant_id, quantity")
+      .eq("order_id", orderId);
+
+    if (items) {
+      for (const item of items) {
+        await admin.rpc("increment_stock", {
+          p_variant_id: item.variant_id,
+          p_qty: item.quantity,
+        });
+        await admin.from("inventory_movements").insert({
+          variant_id: item.variant_id,
+          change_qty: item.quantity,
+          reason: "return",
+          reference_id: orderId,
+          reference_type: "order",
+          note: `Order ${order.order_number} cancelled by customer — stock returned`,
+        });
+      }
+    }
+
+    await admin
+      .from("orders")
+      .update({
+        status: "cancelled",
+        admin_note: "Cancelled by customer",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", orderId);
+
+    void sendOrderCancelledEmail({
+      userId: user.id,
+      orderId,
+      orderNumber: order.order_number,
+    });
+
+    revalidatePath("/account/orders");
+    revalidatePath(`/account/orders/${orderId}`);
+    revalidatePath("/admin/orders");
+    return { ok: true };
+  } catch (err) {
+    console.error("[cancelOrder]", err);
+    return { ok: false, error: "Could not cancel order. Please try again." };
   }
 }

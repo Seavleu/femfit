@@ -90,18 +90,18 @@ export async function getOrderById(
     status: order.status,
     paymentMethod: order.paymentMethod,
     subtotalDisplay: formatMoney(order.subtotalCents, order.currency).display,
-    shippingDisplay: formatMoney(order.shippingCents, order.currency).display,
+    shippingDisplay: formatMoney(order.shippingFeeCents, order.currency).display,
     totalDisplay: formatMoney(order.totalCents, order.currency).display,
     currency: order.currency,
     createdAt: order.createdAt,
     shippingAddress: {
-      fullName: order.shippingFullName,
+      fullName: order.shippingRecipient,
       phone: order.shippingPhone,
       province: order.shippingProvince,
       district: order.shippingDistrict,
       commune: order.shippingCommune,
-      street: order.shippingStreet,
-      notes: order.shippingNotes,
+      street: order.shippingStreet ?? "",
+      notes: order.customerNote,
     },
     items: items.map((item) => {
       const lineTotal = item.unitPriceCents * item.quantity;

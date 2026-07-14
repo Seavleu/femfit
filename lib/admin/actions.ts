@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { sendOrderShippedEmail, sendOrderCancelledEmail } from "@/lib/notifications/email";
 
 /**
  * Admin server actions.
@@ -75,7 +76,7 @@ export async function transitionOrderStatus(input: {
     // Get current status
     const { data: order } = await admin
       .from("orders")
-      .select("id, status, order_number")
+      .select("id, status, order_number, user_id")
       .eq("id", orderId)
       .single();
     if (!order) return { ok: false, error: "Order not found." };
@@ -92,23 +93,55 @@ export async function transitionOrderStatus(input: {
       updated_at: new Date().toISOString(),
     };
     if (adminNote) updates.admin_note = adminNote;
+    if (newStatus === "shipped") {
+      updates.shipped_at = new Date().toISOString();
+      if (trackingNumber) updates.tracking_number = trackingNumber;
+    }
+    if (newStatus === "delivered") {
+      updates.delivered_at = new Date().toISOString();
+    }
 
     await admin.from("orders").update(updates).eq("id", orderId);
 
-    // If shipped, record tracking number via shipment_events
-    if (newStatus === "shipped" && trackingNumber) {
+    // Manual courier handoff — tracking optional (no Cambodia courier API)
+    if (newStatus === "shipped") {
       await admin.from("shipment_events").insert({
         order_id: orderId,
         status: "shipped",
-        tracking_number: trackingNumber,
-        carrier: "default",
-        note: adminNote ?? null,
+        tracking_number: trackingNumber || null,
+        carrier: "manual",
+        note: adminNote ?? "Handed to local courier (manual tracking)",
+      });
+      if (order.user_id) {
+        void sendOrderShippedEmail({
+          userId: order.user_id,
+          orderId,
+          orderNumber: order.order_number,
+          trackingNumber,
+        });
+      }
+    }
+
+    // Record delivery event for Cambodian manual handoff (no courier API)
+    if (newStatus === "delivered") {
+      await admin.from("shipment_events").insert({
+        order_id: orderId,
+        status: "delivered",
+        carrier: "manual",
+        note: adminNote ?? "Marked delivered by admin",
       });
     }
 
     // If cancelled, return stock
     if (newStatus === "cancelled") {
       await returnStockForOrder(admin, orderId, order.order_number);
+      if (order.user_id) {
+        void sendOrderCancelledEmail({
+          userId: order.user_id,
+          orderId,
+          orderNumber: order.order_number,
+        });
+      }
     }
 
     revalidatePath("/admin/orders");
@@ -139,7 +172,7 @@ async function returnStockForOrder(
       await admin.from("inventory_movements").insert({
         variant_id: item.variant_id,
         change_qty: item.quantity,
-        reason: "cancellation",
+        reason: "return",
         reference_id: orderId,
         reference_type: "order",
         note: `Order ${orderNumber} cancelled — stock returned`,
