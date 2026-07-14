@@ -78,7 +78,7 @@ create extension if not exists "pgcrypto";
 ```sql
 create table public.profiles (
   id                  uuid primary key references auth.users(id) on delete cascade,
-  phone               text unique not null,
+  phone               text unique,              -- nullable: Google OAuth users add phone at checkout
   email               text unique,
   full_name           text,
   preferred_currency  text not null default 'USD'

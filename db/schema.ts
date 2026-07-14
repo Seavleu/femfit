@@ -68,7 +68,7 @@ export const profiles = pgTable(
   "profiles",
   {
     id: uuid("id").primaryKey().notNull(),
-    phone: text("phone").notNull().unique(),
+    phone: text("phone").unique(),
     email: text("email").unique(),
     fullName: text("full_name"),
     preferredCurrency: text("preferred_currency").notNull().default("USD"),
