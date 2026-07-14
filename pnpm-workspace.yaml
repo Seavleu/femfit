@@ -1,0 +1,8 @@
+# FemFit is a single package app — this file only configures
+# which dependency install scripts pnpm may run (pnpm 10+/11).
+allowBuilds:
+  '@sentry/cli': true
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
+  '@playwright/browser-chromium': true

@@ -15,6 +15,7 @@
     "test": "vitest",
     "test:watch": "vitest --watch",
     "test:ci": "vitest run --coverage",
+    "test:e2e": "playwright test",
     "copy-context": "echo 'copying full source code to clipboard' && npx repomix --copy"
   },
   "dependencies": {
@@ -22,6 +23,7 @@
     "@radix-ui/react-dropdown-menu": "^2.1.1",
     "@radix-ui/react-label": "^2.1.0",
     "@radix-ui/react-slot": "^1.1.0",
+    "@sentry/nextjs": "^10.65.0",
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
     "autoprefixer": "10.4.17",
@@ -37,9 +39,11 @@
     "prettier": "^3.3.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "resend": "^6.17.2",
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "14.1.2",
