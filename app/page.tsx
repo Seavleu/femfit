@@ -3,6 +3,10 @@ import { Suspense } from "react";
 import { ProductCard } from "@/components/features/ProductCard";
 import { NewsletterForm } from "@/components/features/NewsletterSection";
 import {
+  BentoFeatureGrid,
+  type BentoFeature,
+} from "@/components/features/BentoFeatureGrid";
+import {
   getFeaturedProducts,
   getNewArrivals,
   getActiveCategories,
@@ -24,6 +28,7 @@ export default async function HomePage() {
       <Suspense fallback={<ProductGridSkeleton title="Best Sellers" count={4} />}>
         <BestSellers />
       </Suspense>
+      <WhyFemFit />
       <ValuesStrip />
       <Suspense fallback={<ProductGridSkeleton title="New Arrivals" count={4} />}>
         <NewArrivals />
@@ -206,6 +211,72 @@ async function BestSellers() {
           <ProductCard key={product.id} product={product} priority={false} />
         ))}
       </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────── Why FemFit ─────────────────────────── */
+
+const WHY_FEMFIT_FEATURES: BentoFeature[] = [
+  {
+    id: "fabric",
+    tag: "Fabric",
+    title: "Four-way stretch",
+    description: "Compression-grade blend that moves with every angle.",
+    detail:
+      "A weighted nylon-elastane blend engineered for four-way stretch and compression. It holds its shape through burpees, backbends, and everything between — no sagging, no rolling waistband.",
+    accent:
+      "radial-gradient(ellipse at 80% 20%, rgba(232,62,140,0.35), transparent 55%), linear-gradient(155deg, #121212 0%, #241820 100%)",
+  },
+  {
+    id: "fit",
+    tag: "Fit",
+    title: "Second-skin fit",
+    description: "Cut for real bodies, not just sample sizes.",
+    detail:
+      "Every pattern is graded across sizes independently — not just scaled — so proportions stay right whether you're picking up an XS or an XL. Flat seams sit close without digging in.",
+    accent: "linear-gradient(155deg, #2a2a2a 0%, #121212 100%)",
+  },
+  {
+    id: "sport-tested",
+    tag: "Sport-tested",
+    title: "Built in the gym",
+    description: "Trialed by Phnom Penh gymnasts before it ships.",
+    detail:
+      "Every design goes through a full training cycle with local gymnasts and coaches before it hits the shop — squats, bar work, tumbling — so what you buy has already been through the reps.",
+    accent:
+      "radial-gradient(ellipse at 20% 80%, rgba(245,230,66,0.3), transparent 55%), linear-gradient(155deg, #121212 0%, #1c1c1c 100%)",
+  },
+  {
+    id: "breathable",
+    tag: "Breathable",
+    title: "Sweat-wicking mesh",
+    description: "Ventilated panels keep you cool through the set.",
+  },
+  {
+    id: "sustainable",
+    tag: "Sustainable",
+    title: "Recycled yarn",
+    description: "Made with regenerated fiber from post-consumer waste.",
+  },
+  {
+    id: "sizing",
+    tag: "Sizing",
+    title: "XS – 3XL, always in stock",
+    description: "No size is treated as an afterthought.",
+  },
+];
+
+function WhyFemFit() {
+  return (
+    <section className="mt-10 md:mt-14">
+      <SectionHeader
+        eyebrow="Why FemFit"
+        title="Made to move"
+        href="/products"
+        linkLabel="Shop the collection"
+      />
+      <BentoFeatureGrid features={WHY_FEMFIT_FEATURES} className="mt-5" />
     </section>
   );
 }
