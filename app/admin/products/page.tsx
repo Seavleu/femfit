@@ -22,12 +22,17 @@ export default async function AdminProductsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-end justify-between">
+      <div className="flex items-end justify-between gap-4">
         <div>
           <p className="label-mono mb-2">Catalog</p>
           <h1 className="title-serif">Products</h1>
         </div>
-        <p className="label-mono">{(productList ?? []).length} products</p>
+        <div className="flex items-center gap-4">
+          <p className="label-mono">{(productList ?? []).length} products</p>
+          <Link href="/admin/products/new" className="btn-solid">
+            Add product
+          </Link>
+        </div>
       </div>
 
       <div className="module overflow-x-auto">

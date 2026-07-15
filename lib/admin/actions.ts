@@ -279,6 +279,15 @@ export async function toggleProductActive(input: {
     await requireAdmin();
     const admin = createServiceRoleClient();
 
+    const { data: product } = await admin
+      .from("products")
+      .select("id, deleted_at")
+      .eq("id", input.productId)
+      .maybeSingle();
+    if (!product || product.deleted_at) {
+      return { ok: false, error: "Product not found." };
+    }
+
     await admin
       .from("products")
       .update({
@@ -288,6 +297,8 @@ export async function toggleProductActive(input: {
       .eq("id", input.productId);
 
     revalidatePath("/admin/products");
+    revalidatePath(`/admin/products/${input.productId}`);
+    revalidatePath("/products");
     return { ok: true, data: undefined };
   } catch (err) {
     console.error("[toggleProductActive]", err);
